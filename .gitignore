@@ -1,0 +1,22 @@
+# UE
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+
+# Visual Studio
+*.sln
+*.vcxproj*
+*.VC.db
+
+# Rider
+.idea/
+*.sln.iml
+
+# Build
+Build/
+
+# OS
+.DS_Store
+Thumbs.db
