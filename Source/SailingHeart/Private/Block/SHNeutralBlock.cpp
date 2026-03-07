@@ -6,7 +6,6 @@
 #include "Data/SHNeutralBlockData.h"
 #include "Data/SHPlayerBlockData.h"
 #include "Game/SHGameStateBase.h"
-#include "Components/StateTreeComponent.h"
 #include "SHGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
@@ -72,23 +71,11 @@ ASHNeutralBlock* ASHNeutralBlock::SpawnDeferred(
 	NewBlock->TargetBlockTypeID = NeutralData->TargetBlockTypeID;
 	NewBlock->Level = InLevel;
 
-	// 设置 StateTree
-	if (NeutralData->StateTree && NewBlock->StateTreeComponent)
-	{
-		NewBlock->StateTreeComponent->SetStateTree(NeutralData->StateTree);
-	}
-
 	// 启用碰撞
 	NewBlock->EnableBlockCollision();
 
 	// 完成生成
 	NewBlock->FinishSpawning(SpawnTransform);
-
-	// 启动 StateTree（在 FinishSpawning 之后，只在服务器运行）
-	if (NewBlock->HasAuthority() && NeutralData->StateTree && NewBlock->StateTreeComponent)
-	{
-		NewBlock->StateTreeComponent->StartLogic();
-	}
 
 	return NewBlock;
 }
@@ -191,9 +178,7 @@ bool ASHNeutralBlock::TrySpawnPlayerBlock(ASHGridBase* PlayerGrid)
 		Row, Column,
 		TargetBlockTypeID,
 		Level,
-		LevelConfig,
-		-1.f,
-		BlockData->StateTree
+		LevelConfig
 	);
 
 	return NewBlock != nullptr;

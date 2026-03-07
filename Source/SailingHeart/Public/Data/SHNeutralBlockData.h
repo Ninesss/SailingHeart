@@ -7,7 +7,6 @@
 #include "SHNeutralBlockData.generated.h"
 
 class ASHNeutralBlock;
-class UStateTree;
 
 /**
  * 中立方块数据资源
@@ -30,8 +29,4 @@ public:
 	// 中立方块蓝图类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neutral")
 	TSubclassOf<ASHNeutralBlock> NeutralClass;
-
-	// StateTree 行为树（可选，用于 AI 行为控制）
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	TObjectPtr<UStateTree> StateTree;
 };

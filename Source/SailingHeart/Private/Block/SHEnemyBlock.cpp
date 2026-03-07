@@ -2,7 +2,6 @@
 
 #include "Block/SHEnemyBlock.h"
 #include "Data/SHEnemyBlockData.h"
-#include "Components/StateTreeComponent.h"
 #include "SHGameplayTags.h"
 
 ASHEnemyBlock::ASHEnemyBlock()
@@ -64,20 +63,8 @@ ASHEnemyBlock* ASHEnemyBlock::SpawnDeferred(
 	// 在 FinishSpawning 之前初始化属性
 	NewBlock->InitializeBlock(Params);
 
-	// 设置 StateTree
-	if (EnemyData->StateTree && NewBlock->StateTreeComponent)
-	{
-		NewBlock->StateTreeComponent->SetStateTree(EnemyData->StateTree);
-	}
-
 	// 完成生成
 	NewBlock->FinishSpawning(SpawnTransform);
-
-	// 启动 StateTree（在 FinishSpawning 之后，只在服务器运行）
-	if (NewBlock->HasAuthority() && EnemyData->StateTree && NewBlock->StateTreeComponent)
-	{
-		NewBlock->StateTreeComponent->StartLogic();
-	}
 
 	return NewBlock;
 }

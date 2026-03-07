@@ -5,11 +5,9 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Block/SHCombatBlockBase.h"
-#include "StateTreeReference.h"
 #include "SHEnemyBlockData.generated.h"
 
 class ASHEnemyBlock;
-class UStateTree;
 
 /**
  * 敌人方块数据资源
@@ -28,10 +26,6 @@ public:
 	// 敌人蓝图类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 	TSubclassOf<ASHEnemyBlock> EnemyClass;
-
-	// StateTree 行为树（可选，用于 AI 行为控制）
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	TObjectPtr<UStateTree> StateTree;
 
 	// 每级配置（Key = 等级，从 1 开始）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Levels")

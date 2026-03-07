@@ -8,7 +8,6 @@
 #include "SHPlayerBlockData.generated.h"
 
 class ASHPlayerBlock;
-class UStateTree;
 
 /**
  * 玩家方块数据资源
@@ -27,10 +26,6 @@ public:
 	// 方块蓝图类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Block")
 	TSubclassOf<ASHPlayerBlock> BlockClass;
-
-	// StateTree 行为树（可选，用于 AI 行为控制）
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	TObjectPtr<UStateTree> StateTree;
 
 	// 每级配置（Key = 等级，从 1 开始）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Levels")

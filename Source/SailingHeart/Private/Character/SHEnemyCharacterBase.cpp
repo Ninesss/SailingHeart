@@ -18,12 +18,6 @@ ASHEnemyCharacterBase::ASHEnemyCharacterBase(const FObjectInitializer& ObjectIni
 void ASHEnemyCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// 只在服务器启动 StateTree
-	if (HasAuthority() && EnemyCharacterData && EnemyCharacterData->StateTree && StateTreeComponent)
-	{
-		StateTreeComponent->StartLogic();
-	}
 }
 
 void ASHEnemyCharacterBase::InitializeFromData(USHEnemyCharacterData* EnemyData)
@@ -44,12 +38,6 @@ void ASHEnemyCharacterBase::InitializeFromData(USHEnemyCharacterData* EnemyData)
 	Params.CriticalRate = EnemyData->CriticalRate;
 	Params.CriticalDamage = EnemyData->CriticalDamage;
 	InitializeCharacter(Params);
-
-	// 设置 StateTree
-	if (EnemyData->StateTree && StateTreeComponent)
-	{
-		StateTreeComponent->SetStateTree(EnemyData->StateTree);
-	}
 }
 
 void ASHEnemyCharacterBase::DrawDebugInfo()

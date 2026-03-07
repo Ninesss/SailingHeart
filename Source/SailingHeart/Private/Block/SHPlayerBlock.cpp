@@ -4,7 +4,6 @@
 #include "Block/SHCombatBlockBase.h"
 #include "Grid/SHGridBase.h"
 #include "Data/SHPlayerBlockData.h"
-#include "Components/StateTreeComponent.h"
 #include "SHGameplayTags.h"
 
 #include "AbilitySystemComponent.h"
@@ -33,8 +32,7 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 	FName BlockTypeID,
 	int32 Level,
 	const FBlockLevelConfig& LevelConfig,
-	float CurrentHealth,
-	UStateTree* InStateTree)
+	float CurrentHealth)
 {
 	if (!World || !BlockClass || !Grid)
 	{
@@ -80,23 +78,11 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 	// 在 FinishSpawning 之前初始化属性（这样碰撞事件触发时属性已就绪）
 	NewBlock->InitializeBlock(Params);
 
-	// 设置 StateTree
-	if (InStateTree && NewBlock->StateTreeComponent)
-	{
-		NewBlock->StateTreeComponent->SetStateTree(InStateTree);
-	}
-
 	// 注册到 Grid（这样碰撞事件触发时 HasShipBlockAt 返回 true）
 	Grid->SetShipBlockAt(Row, Column, NewBlock);
 
 	// 完成生成（此时执行 BeginPlay，可能触发碰撞事件，属性已正确设置）
 	NewBlock->FinishSpawning(SpawnTransform);
-
-	// 启动 StateTree（在 FinishSpawning 之后，只在服务器运行）
-	if (NewBlock->HasAuthority() && InStateTree && NewBlock->StateTreeComponent)
-	{
-		NewBlock->StateTreeComponent->StartLogic();
-	}
 
 	return NewBlock;
 }

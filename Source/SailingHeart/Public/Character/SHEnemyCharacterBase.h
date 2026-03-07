@@ -34,7 +34,7 @@ public:
 	// ========== 初始化 ==========
 
 	/**
-	 * 使用 DataAsset 初始化敌人（属性 + StateTree）
+	 * 使用 DataAsset 初始化敌人属性
 	 * @param EnemyData 敌人数据资产
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Enemy")

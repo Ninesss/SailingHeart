@@ -198,9 +198,7 @@ void ASHPlayerController::ServerPlaceBlock_Implementation()
 		Row, Column,
 		SelectedBlockTypeID,
 		1,
-		LevelConfig,
-		-1.f,
-		BlockData->StateTree
+		LevelConfig
 	);
 }
 
@@ -283,8 +281,7 @@ void ASHPlayerController::ServerCarryBlock_Implementation()
 			CarriedState.BlockTypeID,
 			CarriedState.Level,
 			LevelConfig,
-			CarriedState.CurrentHealth,
-			BlockData->StateTree
+			CarriedState.CurrentHealth
 		);
 
 		if (NewBlock)

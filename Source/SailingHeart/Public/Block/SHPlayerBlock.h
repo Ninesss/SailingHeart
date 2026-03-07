@@ -9,7 +9,6 @@
 
 class UGameplayEffect;
 class ASHGridBase;
-class UStateTree;
 
 /**
  * 玩家方块 - 可被玩家操作（搬运、合成）的方块
@@ -38,7 +37,6 @@ public:
 	 * @param Level 等级
 	 * @param LevelConfig 等级配置
 	 * @param CurrentHealth 当前血量（-1 表示满血）
-	 * @param InStateTree StateTree 行为树（可选）
 	 * @return 生成的方块，失败返回 nullptr
 	 */
 	static ASHPlayerBlock* SpawnDeferred(
@@ -49,8 +47,7 @@ public:
 		FName BlockTypeID,
 		int32 Level,
 		const FBlockLevelConfig& LevelConfig,
-		float CurrentHealth = -1.f,
-		UStateTree* InStateTree = nullptr
+		float CurrentHealth = -1.f
 	);
 
 	// ========== 升级 ==========

@@ -7,7 +7,6 @@
 #include "SHEnemyCharacterData.generated.h"
 
 class ASHEnemyCharacterBase;
-class UStateTree;
 class USHAbilityDataBase;
 
 /**
@@ -31,10 +30,6 @@ public:
 	// 敌人蓝图类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy")
 	TSubclassOf<ASHEnemyCharacterBase> EnemyClass;
-
-	// StateTree 行为树（用于 AI 行为控制）
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	TObjectPtr<UStateTree> StateTree;
 
 	// ========== 初始属性 ==========
 
