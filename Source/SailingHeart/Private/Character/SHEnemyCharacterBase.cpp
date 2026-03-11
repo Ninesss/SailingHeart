@@ -40,6 +40,15 @@ void ASHEnemyCharacterBase::InitializeFromData(USHEnemyCharacterData* EnemyData)
 	InitializeCharacter(Params);
 }
 
+const FSHAIConfig& ASHEnemyCharacterBase::GetAIConfig() const
+{
+	if (EnemyCharacterData)
+	{
+		return EnemyCharacterData->AIConfig;
+	}
+	return DefaultAIConfig;
+}
+
 void ASHEnemyCharacterBase::DrawDebugInfo()
 {
 	FVector Location = GetActorLocation() + FVector(0, 0, 200.f);

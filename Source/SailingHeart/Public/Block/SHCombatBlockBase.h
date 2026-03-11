@@ -14,6 +14,23 @@ class USHAbilityDataBase;
 class UGameplayEffect;
 
 /**
+ * 单条技能授予配置 - DataAsset + 独立等级
+ */
+USTRUCT(BlueprintType)
+struct FGrantedAbilityConfig
+{
+	GENERATED_BODY()
+
+	// 技能 DataAsset
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	TObjectPtr<USHAbilityDataBase> AbilityData = nullptr;
+
+	// 技能等级（0 = 使用方块当前等级）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (ClampMin = "0"))
+	int32 AbilityLevel = 0;
+};
+
+/**
  * 方块等级配置 - 通用结构体，用于 PlayerBlock 和 EnemyBlock
  */
 USTRUCT(BlueprintType)
@@ -53,9 +70,9 @@ struct FBlockLevelConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes", meta = (ClampMin = "1"))
 	float ActionSpeed = 100.f;
 
-	// 该等级激活的技能（使用 DataAsset 配置）
+	// 该等级激活的技能（可为每个技能单独设置等级，AbilityLevel=0 使用方块当前等级）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
-	TArray<USHAbilityDataBase*> GrantedAbilities;
+	TArray<FGrantedAbilityConfig> GrantedAbilities;
 };
 
 /**
@@ -108,7 +125,7 @@ struct FBlockInitParams
 
 	// 初始授予的能力（使用 DataAsset 配置）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<USHAbilityDataBase*> AbilityDataAssets;
+	TArray<FGrantedAbilityConfig> AbilityDataAssets;
 };
 
 /**
@@ -125,6 +142,10 @@ public:
 
 	// IAbilitySystemInterface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+
+	// 在所有客户端播放 Montage（服务器调用，广播到客户端）
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayMontage(UAnimMontage* Montage);
 
 	// ========== 属性访问器 ==========
 
@@ -161,10 +182,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	float GetEnergyRegen() const;
 
-	// ISHCombatInterface 实现（IsDead, Die, GetAvatar）
+	// ISHCombatInterface 实现
 	virtual bool IsDead_Implementation() const override;
 	virtual void Die_Implementation() override;
 	virtual AActor* GetAvatar_Implementation() override;
+
+	/**
+	 * 通过 Socket 标签返回 FunctionalSKM 上对应 Socket 的世界变换
+	 * 子类可覆盖以支持自定义 Socket 名称映射
+	 */
+	virtual FTransform GetCombatSocketTransform_Implementation(const FGameplayTag& SocketTag) const override;
+
+	/**
+	 * 根据技能 TriggerTag 返回对应 Montage
+	 * 在蓝图 AbilityMontageMap 中配置，技能本身不保存 Montage
+	 */
+	virtual UAnimMontage* GetAbilityMontage_Implementation(const FGameplayTag& TriggerTag) const override;
 
 	// ========== 死亡处理 ==========
 
@@ -189,6 +222,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Effects")
 	TSubclassOf<UGameplayEffect> EnergyRegenEffectClass;
 
+	/**
+	 * 技能 TriggerTag → AnimMontage 映射表
+	 * Key：与 USHAbilityDataBase.TriggerTag 一致（如 Ability.Trigger.Projectile.Basic）
+	 * Value：该方块蓝图对应的攻击 Montage
+	 * 在蓝图子类的 DefaultsOnly 中配置，不同外观的方块可有不同的动画
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+	TMap<FGameplayTag, TObjectPtr<UAnimMontage>> AbilityMontageMap;
+
 	// ========== 统一初始化入口 ==========
 
 	/**
@@ -207,7 +249,7 @@ protected:
 
 	// 授予技能（使用 DataAsset）
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
-	void GrantAbilitiesFromData(const TArray<USHAbilityDataBase*>& AbilityDataAssets, int32 Level = 1);
+	void GrantAbilitiesFromData(const TArray<FGrantedAbilityConfig>& AbilityConfigs, int32 BlockLevel = 1);
 
 	// 清除所有技能
 	UFUNCTION(BlueprintCallable, Category = "Abilities")

@@ -28,6 +28,11 @@ void FSHGameplayTags::InitializeNativeGameplayTags()
 		FString("Player faction")
 	);
 
+	GameplayTags.Faction_Ally = Manager.AddNativeGameplayTag(
+		FName("Faction.Ally"),
+		FString("Ally faction (player-placed blocks and ally units)")
+	);
+
 	GameplayTags.Faction_Enemy = Manager.AddNativeGameplayTag(
 		FName("Faction.Enemy"),
 		FString("Enemy faction")
@@ -36,6 +41,28 @@ void FSHGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.Faction_Neutral = Manager.AddNativeGameplayTag(
 		FName("Faction.Neutral"),
 		FString("Neutral faction (obstacles, etc.)")
+	);
+
+	// ========== 战斗 Socket 标签 ==========
+
+	GameplayTags.CombatSocket_Weapon = Manager.AddNativeGameplayTag(
+		FName("CombatSocket.Weapon"),
+		FString("Weapon/projectile fire socket")
+	);
+
+	GameplayTags.CombatSocket_LeftHand = Manager.AddNativeGameplayTag(
+		FName("CombatSocket.LeftHand"),
+		FString("Left hand melee socket")
+	);
+
+	GameplayTags.CombatSocket_RightHand = Manager.AddNativeGameplayTag(
+		FName("CombatSocket.RightHand"),
+		FString("Right hand melee socket")
+	);
+
+	GameplayTags.CombatSocket_AttackScene = Manager.AddNativeGameplayTag(
+		FName("CombatSocket.AttackScene"),
+		FString("Scene-based attack center point")
 	);
 
 	// ========== 基础属性标签（共用）==========
@@ -109,6 +136,33 @@ void FSHGameplayTags::InitializeNativeGameplayTags()
 		FString("Movement speed multiplier (percentage)")
 	);
 
+	// ========== 技能触发标签 ==========
+
+	GameplayTags.AbilityTrigger_Block_Attack = Manager.AddNativeGameplayTag(
+		FName("Ability.Trigger.Block.Attack"),
+		FString("Generic attack slot for block abilities - StateTree uses this tag, specific ability is determined by DataAsset")
+	);
+
+	GameplayTags.AbilityTrigger_Projectile_Linear = Manager.AddNativeGameplayTag(
+		FName("Ability.Trigger.Projectile.Linear"),
+		FString("Trigger tag for linear projectile ability")
+	);
+
+	GameplayTags.AbilityTrigger_Projectile_Homing = Manager.AddNativeGameplayTag(
+		FName("Ability.Trigger.Projectile.Homing"),
+		FString("Trigger tag for homing projectile ability")
+	);
+
+	GameplayTags.AbilityTrigger_Melee_Basic = Manager.AddNativeGameplayTag(
+		FName("Ability.Trigger.Melee.Basic"),
+		FString("Trigger tag for basic melee ability")
+	);
+
+	GameplayTags.AbilityTrigger_TimeSlow = Manager.AddNativeGameplayTag(
+		FName("Ability.Trigger.TimeSlow"),
+		FString("Trigger tag for time slow ability")
+	);
+
 	// ========== Toggle激活状态标签 ==========
 
 	GameplayTags.ToggleState_Player_TimeSlow = Manager.AddNativeGameplayTag(
@@ -120,12 +174,22 @@ void FSHGameplayTags::InitializeNativeGameplayTags()
 
 	GameplayTags.Cooldown_Player_Projectile_Linear = Manager.AddNativeGameplayTag(
 		FName("Cooldown.Player.Projectile.Linear"),
-		FString("Linear projectile ability cooldown")
+		FString("Player linear projectile ability cooldown")
 	);
 
 	GameplayTags.Cooldown_Player_Projectile_Homing = Manager.AddNativeGameplayTag(
 		FName("Cooldown.Player.Projectile.Homing"),
-		FString("Homing projectile ability cooldown")
+		FString("Player homing projectile ability cooldown")
+	);
+
+	GameplayTags.Cooldown_PBlock_Projectile_Linear = Manager.AddNativeGameplayTag(
+		FName("Cooldown.PBlock.Projectile.Linear"),
+		FString("Player Block linear projectile ability cooldown")
+	);
+
+	GameplayTags.Cooldown_PBlock_Projectile_Homing = Manager.AddNativeGameplayTag(
+		FName("Cooldown.PBlock.Projectile.Homing"),
+		FString("Player Block homing projectile ability cooldown")
 	);
 
 	GameplayTags.Cooldown_Player_TimeSlow = Manager.AddNativeGameplayTag(

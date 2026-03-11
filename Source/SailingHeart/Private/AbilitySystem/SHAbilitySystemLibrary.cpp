@@ -132,10 +132,13 @@ FGameplayTag USHAbilitySystemLibrary::GetActorFaction(AActor* Actor)
 		{
 			const FSHGameplayTags& Tags = FSHGameplayTags::Get();
 
-			// 检查各阵营标签
 			if (ASC->HasMatchingGameplayTag(Tags.Faction_Player))
 			{
 				return Tags.Faction_Player;
+			}
+			if (ASC->HasMatchingGameplayTag(Tags.Faction_Ally))
+			{
+				return Tags.Faction_Ally;
 			}
 			if (ASC->HasMatchingGameplayTag(Tags.Faction_Enemy))
 			{
@@ -174,8 +177,11 @@ bool USHAbilitySystemLibrary::AreActorsFriends(AActor* FirstActor, AActor* Secon
 		return false;
 	}
 
-	// 同阵营为友方
-	return F1 == F2;
+	// Player 与 Ally 互为友方；同阵营也互为友方
+	const bool bF1IsPlayerSide = (F1 == Tags.Faction_Player || F1 == Tags.Faction_Ally);
+	const bool bF2IsPlayerSide = (F2 == Tags.Faction_Player || F2 == Tags.Faction_Ally);
+
+	return bF1IsPlayerSide == bF2IsPlayerSide;
 }
 
 bool USHAbilitySystemLibrary::AreActorsEnemies(AActor* FirstActor, AActor* SecondActor)
@@ -195,14 +201,41 @@ bool USHAbilitySystemLibrary::AreActorsEnemies(AActor* FirstActor, AActor* Secon
 
 	const FSHGameplayTags& Tags = FSHGameplayTags::Get();
 
-	// 中立方不是敌人
+	// 中立方不是任何人的敌人
 	if (F1 == Tags.Faction_Neutral || F2 == Tags.Faction_Neutral)
 	{
 		return false;
 	}
 
-	// Player vs Enemy 为敌方
-	return F1 != F2;
+	// Player/Ally vs Enemy 为敌方
+	const bool bF1IsPlayerSide = (F1 == Tags.Faction_Player || F1 == Tags.Faction_Ally);
+	const bool bF2IsPlayerSide = (F2 == Tags.Faction_Player || F2 == Tags.Faction_Ally);
+
+	return bF1IsPlayerSide != bF2IsPlayerSide;
+}
+
+FName USHAbilitySystemLibrary::GetSocketNameForCombatTag(const FGameplayTag& SocketTag)
+{
+	const FSHGameplayTags& SHTags = FSHGameplayTags::Get();
+
+	if (SocketTag.MatchesTagExact(SHTags.CombatSocket_Weapon))
+	{
+		return FName("WeaponSocket");
+	}
+	if (SocketTag.MatchesTagExact(SHTags.CombatSocket_LeftHand))
+	{
+		return FName("LeftHandSocket");
+	}
+	if (SocketTag.MatchesTagExact(SHTags.CombatSocket_RightHand))
+	{
+		return FName("RightHandSocket");
+	}
+	if (SocketTag.MatchesTagExact(SHTags.CombatSocket_AttackScene))
+	{
+		return FName("AttackSceneSocket");
+	}
+
+	return NAME_None;
 }
 
 void USHAbilitySystemLibrary::ApplyDamage(

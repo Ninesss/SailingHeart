@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "SHAbilityDataBase.generated.h"
 
 class UGameplayAbility;
@@ -55,6 +56,14 @@ public:
 	// 能力类（GameplayAbility）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability|Class")
 	TSubclassOf<UGameplayAbility> AbilityClass;
+
+	/**
+	 * 触发标签 - StateTree 通过发送此 Tag 的 GameplayEvent 来激活该技能
+	 * 同时作为 Actor 的动画映射 Key（Actor 通过此 Tag 查找对应的 AnimMontage）
+	 * 命名规范：Ability.Trigger.<技能类型>，如 Ability.Trigger.Projectile.Basic
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability|Trigger")
+	FGameplayTag TriggerTag;
 
 	// ========== 辅助函数 ==========
 

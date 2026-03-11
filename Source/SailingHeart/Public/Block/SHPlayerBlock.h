@@ -5,17 +5,20 @@
 #include "CoreMinimal.h"
 #include "Block/SHCombatBlockBase.h"
 #include "Save/SHBlockTypes.h"
+#include "AI/SHAIEntityInterface.h"
 #include "SHPlayerBlock.generated.h"
 
 class UGameplayEffect;
 class ASHGridBase;
+class USHPlayerBlockData;
 
 /**
- * 玩家方块 - 可被玩家操作（搬运、合成）的方块
- * 放置在玩家 Grid 上，拥有 GAS 战斗能力
+ * 玩家（友军）方块 - 可被玩家操作（搬运、合成）的方块
+ * 放置在玩家 Grid 上，拥有 GAS 战斗能力，阵营为 Faction.Ally
+ * 通过 StateTree 自动检测并攻击敌方单位
  */
 UCLASS()
-class SAILINGHEART_API ASHPlayerBlock : public ASHCombatBlockBase
+class SAILINGHEART_API ASHPlayerBlock : public ASHCombatBlockBase, public ISHAIEntityInterface
 {
 	GENERATED_BODY()
 
@@ -29,24 +32,20 @@ public:
 	/**
 	 * 使用 Deferred 方式生成玩家方块（统一入口）
 	 * @param World 世界
-	 * @param BlockClass 方块蓝图类
+	 * @param BlockData 方块 DataAsset（用于 AI 配置）
 	 * @param Grid 目标 Grid
 	 * @param Row 行
 	 * @param Column 列
-	 * @param BlockTypeID 方块类型 ID
 	 * @param Level 等级
-	 * @param LevelConfig 等级配置
 	 * @param CurrentHealth 当前血量（-1 表示满血）
 	 * @return 生成的方块，失败返回 nullptr
 	 */
 	static ASHPlayerBlock* SpawnDeferred(
 		UWorld* World,
-		TSubclassOf<ASHPlayerBlock> BlockClass,
+		USHPlayerBlockData* BlockData,
 		ASHGridBase* Grid,
 		int32 Row, int32 Column,
-		FName BlockTypeID,
 		int32 Level,
-		const FBlockLevelConfig& LevelConfig,
 		float CurrentHealth = -1.f
 	);
 
@@ -84,6 +83,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	ASHGridBase* GetOwnerGrid() const { return OwnerGrid.Get(); }
 
+	// ========== AI DataAsset ==========
+
+	// 设置方块的 DataAsset（由 SpawnDeferred 调用，供 ISHAIEntityInterface 使用）
+	void SetBlockData(USHPlayerBlockData* InData) { BlockData = InData; }
+
+	// ISHAIEntityInterface
+	virtual const FSHAIConfig& GetAIConfig() const override;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -118,4 +125,10 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<ASHGridBase> OwnerGrid;
 
+	// 方块数据资产（用于提供 AIConfig）
+	UPROPERTY()
+	TObjectPtr<USHPlayerBlockData> BlockData;
+
+	// 默认 AI 配置（BlockData 未设置时使用）
+	FSHAIConfig DefaultAIConfig;
 };

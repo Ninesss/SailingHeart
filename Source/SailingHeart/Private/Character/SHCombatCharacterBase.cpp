@@ -3,6 +3,9 @@
 #include "Character/SHCombatCharacterBase.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/AttributeSet/SHAttributeSetBase.h"
+#include "AbilitySystem/SHAbilitySystemLibrary.h"
+#include "Animation/AnimMontage.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 
 ASHCombatCharacterBase::ASHCombatCharacterBase(const FObjectInitializer& ObjectInitializer)
@@ -93,6 +96,32 @@ float ASHCombatCharacterBase::GetCriticalRate() const
 float ASHCombatCharacterBase::GetCriticalDamage() const
 {
 	return AttributeSet ? AttributeSet->GetCriticalDamage() : 200.f;
+}
+
+FTransform ASHCombatCharacterBase::GetCombatSocketTransform_Implementation(const FGameplayTag& SocketTag) const
+{
+	USkeletalMeshComponent* CharMesh = GetMesh();
+	if (!CharMesh)
+	{
+		return GetActorTransform();
+	}
+
+	const FName SocketName = USHAbilitySystemLibrary::GetSocketNameForCombatTag(SocketTag);
+	if (SocketName != NAME_None && CharMesh->DoesSocketExist(SocketName))
+	{
+		return CharMesh->GetSocketTransform(SocketName, RTS_World);
+	}
+
+	return GetActorTransform();
+}
+
+UAnimMontage* ASHCombatCharacterBase::GetAbilityMontage_Implementation(const FGameplayTag& TriggerTag) const
+{
+	if (TObjectPtr<UAnimMontage> const* Found = AbilityMontageMap.Find(TriggerTag))
+	{
+		return *Found;
+	}
+	return nullptr;
 }
 
 // ========== 初始化 ==========

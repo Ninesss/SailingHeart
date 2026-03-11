@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Block/SHCombatBlockBase.h"
+#include "Data/SHAIConfig.h"
 #include "SHEnemyBlockData.generated.h"
 
 class ASHEnemyBlock;
@@ -30,6 +31,10 @@ public:
 	// 每级配置（Key = 等级，从 1 开始）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Levels")
 	TMap<int32, FBlockLevelConfig> LevelConfigs;
+
+	// AI 行为配置（检测范围、攻击范围等）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	FSHAIConfig AIConfig;
 
 	// 获取指定等级配置
 	UFUNCTION(BlueprintCallable, Category = "Enemy")

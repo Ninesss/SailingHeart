@@ -83,6 +83,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "SailingHeart|Faction")
 	static bool AreActorsEnemies(AActor* FirstActor, AActor* SecondActor);
 
+	// ========== Socket 映射 ==========
+
+	/**
+	 * 根据 CombatSocket 标签返回 SKM 上对应 Socket 的名称
+	 * @param SocketTag  CombatSocket.Weapon / CombatSocket.LeftHand 等
+	 * @return Socket 名，无对应映射时返回 NAME_None
+	 */
+	static FName GetSocketNameForCombatTag(const FGameplayTag& SocketTag);
+
 	// ========== 伤害应用辅助函数 ==========
 
 	/**

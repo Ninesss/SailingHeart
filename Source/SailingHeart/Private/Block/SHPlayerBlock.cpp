@@ -5,6 +5,7 @@
 #include "Grid/SHGridBase.h"
 #include "Data/SHPlayerBlockData.h"
 #include "SHGameplayTags.h"
+#include "AI/SHAIEntityInterface.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/AttributeSet/SHBlockAttributeSet.h"
@@ -16,8 +17,8 @@ ASHPlayerBlock::ASHPlayerBlock()
 	// 默认启用移动复制
 	SetReplicateMovement(true);
 
-	// 设置阵营标签
-	FactionTag = FSHGameplayTags::Get().Faction_Player;
+	// 友军方块使用 Faction.Ally（不是 Faction.Player）
+	FactionTag = FSHGameplayTags::Get().Faction_Ally;
 
 	// 设置碰撞预设（在基类配置中设置 CellSize）
 	BlockCollisionProfileName = TEXT("PlayerBlock");
@@ -26,15 +27,13 @@ ASHPlayerBlock::ASHPlayerBlock()
 
 ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 	UWorld* World,
-	TSubclassOf<ASHPlayerBlock> BlockClass,
+	USHPlayerBlockData* BlockData,
 	ASHGridBase* Grid,
 	int32 Row, int32 Column,
-	FName BlockTypeID,
 	int32 Level,
-	const FBlockLevelConfig& LevelConfig,
 	float CurrentHealth)
 {
-	if (!World || !BlockClass || !Grid)
+	if (!World || !BlockData || !BlockData->BlockClass || !Grid)
 	{
 		return nullptr;
 	}
@@ -44,7 +43,7 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 
 	// 使用 SpawnActorDeferred 生成方块
 	ASHPlayerBlock* NewBlock = World->SpawnActorDeferred<ASHPlayerBlock>(
-		BlockClass,
+		BlockData->BlockClass,
 		SpawnTransform,
 		nullptr,
 		nullptr,
@@ -56,10 +55,16 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 		return nullptr;
 	}
 
+	// 缓存 DataAsset（用于 AI 配置）
+	NewBlock->BlockData = BlockData;
+
 	// 在 FinishSpawning 之前设置所有属性
 	NewBlock->SetCell(Row, Column);
 	NewBlock->SetOwnerGrid(Grid);
-	NewBlock->BlockTypeID = BlockTypeID;
+	NewBlock->BlockTypeID = BlockData->BlockTypeID;
+
+	// 获取等级配置
+	const FBlockLevelConfig& LevelConfig = BlockData->GetLevelConfig(Level);
 
 	// 构建初始化参数
 	FBlockInitParams Params;
@@ -85,6 +90,15 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 	NewBlock->FinishSpawning(SpawnTransform);
 
 	return NewBlock;
+}
+
+const FSHAIConfig& ASHPlayerBlock::GetAIConfig() const
+{
+	if (BlockData)
+	{
+		return BlockData->AIConfig;
+	}
+	return DefaultAIConfig;
 }
 
 void ASHPlayerBlock::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

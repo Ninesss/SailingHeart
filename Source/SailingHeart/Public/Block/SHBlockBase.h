@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
 #include "Components/StateTreeComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameplayTagContainer.h"
 #include "SHBlockBase.generated.h"
 
@@ -38,6 +39,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components")
 	UBoxComponent* GetBlockCollisionBox() const { return BlockCollisionBox; }
 
+	// 功能 SKM（用于播放攻击/待机动画，SKM 资产和位置在蓝图子类中配置）
+	UFUNCTION(BlueprintCallable, Category = "Components")
+	USkeletalMeshComponent* GetFunctionalSKM() const { return FunctionalSKM; }
+
 	// ========== 调试 ==========
 
 	// 设置全局调试显示状态
@@ -60,6 +65,11 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
+
+	// 功能 SKM - 附加在 Root 上，用于播放攻击/待机动画
+	// SKM 资产、AnimBlueprint、相对位置/旋转均在蓝图子类中配置
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USkeletalMeshComponent* FunctionalSKM;
 
 	// 方块碰撞盒（用于方块间碰撞检测）
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

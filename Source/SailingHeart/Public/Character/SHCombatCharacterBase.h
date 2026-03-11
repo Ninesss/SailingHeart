@@ -6,6 +6,7 @@
 #include "Character/SHCharacterBase.h"
 #include "AbilitySystemInterface.h"
 #include "Interface/SHCombatInterface.h"
+#include "GameplayTagContainer.h"
 #include "SHCombatCharacterBase.generated.h"
 
 class UAbilitySystemComponent;
@@ -92,6 +93,18 @@ public:
 	virtual void Die_Implementation() override;
 	virtual AActor* GetAvatar_Implementation() override;
 
+	/**
+	 * 通过 Socket 标签返回角色主 SKM 上对应 Socket 的世界变换
+	 * 调用 USHAbilitySystemLibrary::GetSocketNameForCombatTag 统一映射标签→Socket名
+	 */
+	virtual FTransform GetCombatSocketTransform_Implementation(const FGameplayTag& SocketTag) const override;
+
+	/**
+	 * 根据技能 TriggerTag 返回对应 Montage
+	 * 在蓝图 AbilityMontageMap 中配置，技能本身不保存 Montage
+	 */
+	virtual UAnimMontage* GetAbilityMontage_Implementation(const FGameplayTag& TriggerTag) const override;
+
 	// ========== 死亡处理 ==========
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Combat")
@@ -114,6 +127,15 @@ protected:
 	// 使用的属性集类（子类可在构造函数中设置不同的类）
 	UPROPERTY(EditDefaultsOnly, Category = "GAS")
 	TSubclassOf<USHAttributeSetBase> AttributeSetClass;
+
+	/**
+	 * 技能 TriggerTag → AnimMontage 映射表
+	 * Key：与 USHAbilityDataBase.TriggerTag 一致（如 Ability.Trigger.Projectile.Basic）
+	 * Value：该角色蓝图对应的攻击 Montage
+	 * 在蓝图子类的 DefaultsOnly 中配置，不同外观的角色可有不同的动画
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+	TMap<FGameplayTag, TObjectPtr<UAnimMontage>> AbilityMontageMap;
 
 	// ========== 初始化 ==========
 

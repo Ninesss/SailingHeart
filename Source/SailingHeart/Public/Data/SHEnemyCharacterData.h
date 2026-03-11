@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Data/SHAIConfig.h"
 #include "SHEnemyCharacterData.generated.h"
 
 class ASHEnemyCharacterBase;
@@ -53,4 +54,10 @@ public:
 	// 敌人的初始能力
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
 	TArray<USHAbilityDataBase*> InitialAbilities;
+
+	// ========== AI 配置 ==========
+
+	// AI 行为配置（检测范围、攻击范围、是否可移动追击）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	FSHAIConfig AIConfig;
 };

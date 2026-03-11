@@ -167,18 +167,13 @@ bool ASHNeutralBlock::TrySpawnPlayerBlock(ASHGridBase* PlayerGrid)
 		return false;
 	}
 
-	// 获取等级配置
-	FBlockLevelConfig LevelConfig = BlockData->GetLevelConfig(Level);
-
 	// 使用统一的 Deferred 生成方法
 	ASHPlayerBlock* NewBlock = ASHPlayerBlock::SpawnDeferred(
 		World,
-		BlockData->BlockClass,
+		BlockData,
 		PlayerGrid,
 		Row, Column,
-		TargetBlockTypeID,
-		Level,
-		LevelConfig
+		Level
 	);
 
 	return NewBlock != nullptr;

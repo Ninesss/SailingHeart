@@ -5,8 +5,11 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "AbilitySystem/AttributeSet/SHBlockAttributeSet.h"
+#include "AbilitySystem/SHAbilitySystemLibrary.h"
+#include "Animation/AnimMontage.h"
 #include "Data/Ability/SHAbilityDataBase.h"
 #include "DrawDebugHelpers.h"
+#include "SHGameplayTags.h"
 
 ASHCombatBlockBase::ASHCombatBlockBase()
 {
@@ -100,6 +103,23 @@ void ASHCombatBlockBase::Die_Implementation()
 AActor* ASHCombatBlockBase::GetAvatar_Implementation()
 {
 	return this;
+}
+
+FTransform ASHCombatBlockBase::GetCombatSocketTransform_Implementation(const FGameplayTag& SocketTag) const
+{
+	if (!FunctionalSKM)
+	{
+		return GetActorTransform();
+	}
+
+	const FName SocketName = USHAbilitySystemLibrary::GetSocketNameForCombatTag(SocketTag);
+	if (SocketName != NAME_None && FunctionalSKM->DoesSocketExist(SocketName))
+	{
+		return FunctionalSKM->GetSocketTransform(SocketName, RTS_World);
+	}
+
+	// 找不到对应 Socket 时返回 Actor 变换
+	return GetActorTransform();
 }
 
 float ASHCombatBlockBase::GetCriticalRate() const
@@ -219,21 +239,51 @@ void ASHCombatBlockBase::InitializeAttributes(const FBlockInitParams& Params)
 	}
 }
 
-void ASHCombatBlockBase::GrantAbilitiesFromData(const TArray<USHAbilityDataBase*>& AbilityDataAssets, int32 Level)
+UAnimMontage* ASHCombatBlockBase::GetAbilityMontage_Implementation(const FGameplayTag& TriggerTag) const
+{
+	if (TObjectPtr<UAnimMontage> const* Found = AbilityMontageMap.Find(TriggerTag))
+	{
+		return *Found;
+	}
+	return nullptr;
+}
+
+void ASHCombatBlockBase::GrantAbilitiesFromData(const TArray<FGrantedAbilityConfig>& AbilityConfigs, int32 BlockLevel)
 {
 	if (!HasAuthority() || !AbilitySystemComponent)
 	{
 		return;
 	}
 
-	for (USHAbilityDataBase* AbilityData : AbilityDataAssets)
+	for (const FGrantedAbilityConfig& Config : AbilityConfigs)
 	{
+		USHAbilityDataBase* AbilityData = Config.AbilityData;
 		if (AbilityData && AbilityData->AbilityClass)
 		{
-			FGameplayAbilitySpec Spec(AbilityData->AbilityClass, Level);
-			Spec.SourceObject = AbilityData;  // 传入 DataAsset，能力可以通过 GetAbilityData() 获取配置
+			// AbilityLevel=0 表示使用方块当前等级，否则使用单独配置的等级
+			const int32 FinalLevel = (Config.AbilityLevel > 0) ? Config.AbilityLevel : BlockLevel;
+
+			FGameplayAbilitySpec Spec(AbilityData->AbilityClass, FinalLevel);
+			Spec.SourceObject = AbilityData;
+
+			if (AbilityData->TriggerTag.IsValid())
+			{
+				Spec.GetDynamicSpecSourceTags().AddTag(AbilityData->TriggerTag);
+				// 同时打上通用攻击槽 Tag，StateTree 可用此 Tag 触发任意等级的攻击技能
+				Spec.GetDynamicSpecSourceTags().AddTag(FSHGameplayTags::Get().AbilityTrigger_Block_Attack);
+			}
+
 			AbilitySystemComponent->GiveAbility(Spec);
 		}
+	}
+}
+
+void ASHCombatBlockBase::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
+{
+	if (!Montage || !FunctionalSKM) return;
+	if (UAnimInstance* AnimInstance = FunctionalSKM->GetAnimInstance())
+	{
+		AnimInstance->Montage_Play(Montage);
 	}
 }
 

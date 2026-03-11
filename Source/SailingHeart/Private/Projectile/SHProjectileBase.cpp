@@ -111,12 +111,15 @@ void ASHProjectileBase::OnProjectileOverlap(
 	}
 
 	AActor* InstigatorActor = GetInstigator();
-	if (OtherActor == InstigatorActor)
+	AActor* OwnerActor = GetOwner();
+	if (OtherActor == InstigatorActor || OtherActor == OwnerActor)
 	{
 		return;
 	}
 
-	if (USHAbilitySystemLibrary::AreActorsFriends(InstigatorActor, OtherActor))
+	// 阵营判断使用 Owner 兜底（方块不是 Pawn，Instigator 可能为空）
+	AActor* SourceActor = InstigatorActor ? InstigatorActor : OwnerActor;
+	if (USHAbilitySystemLibrary::AreActorsFriends(SourceActor, OtherActor))
 	{
 		return;
 	}
@@ -324,7 +327,7 @@ AActor* ASHProjectileBase::FindNearestEnemy(AActor* ExcludeActor) const
 		SphereShape
 	);
 
-	AActor* SourceActor = GetInstigator();
+	AActor* SourceActor = GetInstigator() ? GetInstigator() : GetOwner();
 	AActor* NearestEnemy = nullptr;
 	float NearestDistSq = FLT_MAX;
 

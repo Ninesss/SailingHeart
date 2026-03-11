@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{010B9111-4B32-6240-E600-88AC1361BECB}",
+	"EngineAssociation": "{4465A58C-4623-FDE6-727D-5CAA12BE3831}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -42,6 +42,10 @@
 			"Name": "PaperZD",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/c4b43502026047d89296cd7bffd92828"
+		},
+		{
+			"Name": "MotionWarping",
+			"Enabled": true
 		}
 	]
 }

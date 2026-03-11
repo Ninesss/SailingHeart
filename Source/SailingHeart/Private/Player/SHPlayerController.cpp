@@ -188,17 +188,13 @@ void ASHPlayerController::ServerPlaceBlock_Implementation()
 		return;
 	}
 
-	FBlockLevelConfig LevelConfig = BlockData->GetLevelConfig(1);
-
 	// 使用统一的 Deferred 生成方法
 	ASHPlayerBlock::SpawnDeferred(
 		World,
-		BlockData->BlockClass,
+		BlockData,
 		TargetGrid,
 		Row, Column,
-		SelectedBlockTypeID,
-		1,
-		LevelConfig
+		1
 	);
 }
 
@@ -270,17 +266,13 @@ void ASHPlayerController::ServerCarryBlock_Implementation()
 			return;
 		}
 
-		FBlockLevelConfig LevelConfig = BlockData->GetLevelConfig(CarriedState.Level);
-
 		// 使用统一的 Deferred 生成方法
 		ASHPlayerBlock* NewBlock = ASHPlayerBlock::SpawnDeferred(
 			GetWorld(),
-			BlockData->BlockClass,
+			BlockData,
 			TargetGrid,
 			Row, Column,
-			CarriedState.BlockTypeID,
 			CarriedState.Level,
-			LevelConfig,
 			CarriedState.CurrentHealth
 		);
 

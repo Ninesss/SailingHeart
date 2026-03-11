@@ -6,7 +6,15 @@
 #include "Projectile/SHProjectileMovementComponent.h"
 #include "Data/Ability/SHAbilityParams.h"
 #include "Data/Ability/SHProjectileAbilityData.h"
+#include "Data/Ability/SHAbilityDataBase.h"
 #include "Engine/OverlapResult.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Animation/AnimMontage.h"
+#include "Interface/SHCombatInterface.h"
+#include "Block/SHBlockBase.h"
+#include "Block/SHCombatBlockBase.h"
+#include "SHGameplayTags.h"
 
 USHGameplayAbility_Projectile::USHGameplayAbility_Projectile()
 {
@@ -23,7 +31,6 @@ const FSHProjectileAbilityParams* USHGameplayAbility_Projectile::GetCurrentParam
 	{
 		return Data->GetParams(GetAbilityLevel());
 	}
-	UE_LOG(LogTemp, Warning, TEXT("USHGameplayAbility_Projectile::GetCurrentParams - No DataAsset found for %s"), *GetName());
 	return nullptr;
 }
 
@@ -308,7 +315,7 @@ AActor* USHGameplayAbility_Projectile::FindNearestEnemy(const FVector& Origin) c
 	return NearestEnemy;
 }
 
-// ========== 能力激活 ==========
+// ========== 能力激活（两段式：播放动画 → Notify → 发射）==========
 
 void USHGameplayAbility_Projectile::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle,
@@ -316,19 +323,126 @@ void USHGameplayAbility_Projectile::ActivateAbility(
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	// 使用统一的Cost/Cooldown检查（替代CommitAbility）
+	// 检查冷却 + 消耗（此处 Commit，不在 Notify 回调里再次 Commit）
 	if (!CheckAndCommitAbilityCost())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
 
-	// 获取目标（可能为空，根据配置决定是否需要目标）
+	// 缓存目标（可能为空）
 	CurrentTarget = AcquireTarget(TriggerEventData);
 
-	FireProjectiles(ActorInfo);
+	// 尝试播放 Montage 并等待 AnimNotify 触发
+	// 如果没有配置 Montage，直接退化为立即发射（保持向后兼容）
+	PlayMontageAndWaitForEvent(ActorInfo);
+}
 
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+void USHGameplayAbility_Projectile::PlayMontageAndWaitForEvent(const FGameplayAbilityActorInfo* ActorInfo)
+{
+	AActor* AvatarActor = ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr;
+	if (!AvatarActor)
+	{
+		EndAbility(CurrentSpecHandle, ActorInfo, CurrentActivationInfo, true, true);
+		return;
+	}
+
+	// 通过接口从 Avatar 获取对应 TriggerTag 的 Montage
+	// Avatar（蓝图子类）在 AbilityMontageMap 中配置，技能本身不保存 Montage
+	UAnimMontage* Montage = nullptr;
+	if (AvatarActor->Implements<USHCombatInterface>())
+	{
+		if (USHAbilityDataBase* Data = Cast<USHAbilityDataBase>(GetAbilityData()))
+		{
+			if (Data->TriggerTag.IsValid())
+			{
+				Montage = ISHCombatInterface::Execute_GetAbilityMontage(AvatarActor, Data->TriggerTag);
+			}
+		}
+	}
+
+	if (!Montage)
+	{
+		// 无 Montage 配置：立即发射（兼容未设置动画的老数据）
+		FireProjectiles(ActorInfo);
+		EndAbility(CurrentSpecHandle, ActorInfo, CurrentActivationInfo, true, false);
+		return;
+	}
+
+	// 监听 AnimNotify 发送的 Socket 事件（CombatSocket.Weapon）
+	// USHAbilityAnimNotify 在关键帧时发送此 Tag，携带 Socket 位置
+	// 注意：这里的 Tag 与激活技能的 TriggerTag（Ability.Trigger.*）不同
+	const FGameplayTag EventTag = FSHGameplayTags::Get().CombatSocket_Weapon;
+
+	// 注册 WaitGameplayEvent（一次性监听，收到后触发回调）
+	UAbilityTask_WaitGameplayEvent* WaitTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+		this,
+		EventTag,
+		nullptr,    // 不限制 Instigator
+		true,       // bTriggerOnce
+		true        // bMatchExact
+	);
+	WaitTask->EventReceived.AddDynamic(this, &USHGameplayAbility_Projectile::OnAnimNotifyEvent);
+	WaitTask->ReadyForActivation();
+
+	// 播放 Montage（使用 FunctionalSKM 上的 AnimInstance）
+	// 方块的 SKM AnimInstance 直接播放 Montage
+	if (ASHCombatBlockBase* Block = Cast<ASHCombatBlockBase>(AvatarActor))
+	{
+		USkeletalMeshComponent* SKM = Block->GetFunctionalSKM();
+		UAnimInstance* AnimInstance = SKM ? SKM->GetAnimInstance() : nullptr;
+		if (AnimInstance)
+		{
+			// Multicast 广播到所有客户端，各自在本地播放
+			Block->Multicast_PlayMontage(Montage);
+			return;
+		}
+		// SKM 未配置 AnimBP，等待配置后再触发
+		EndAbility(CurrentSpecHandle, ActorInfo, CurrentActivationInfo, true, true);
+		return;
+	}
+
+	// 角色类型：使用 UAbilityTask_PlayMontageAndWait
+	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+		this,
+		NAME_None,
+		Montage
+	);
+	MontageTask->ReadyForActivation();
+}
+
+void USHGameplayAbility_Projectile::OnAnimNotifyEvent(FGameplayEventData Payload)
+{
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	if (!ActorInfo)
+	{
+		EndAbility(CurrentSpecHandle, ActorInfo, CurrentActivationInfo, true, true);
+		return;
+	}
+
+	// 从 Payload.TargetData 提取 Socket 世界位置（由 USHAbilityAnimNotify 打包）
+	FVector SocketLocation = FVector::ZeroVector;
+	if (Payload.TargetData.Num() > 0)
+	{
+		const FGameplayAbilityTargetData_LocationInfo* LocationData =
+			static_cast<const FGameplayAbilityTargetData_LocationInfo*>(Payload.TargetData.Get(0));
+		if (LocationData)
+		{
+			SocketLocation = LocationData->TargetLocation.GetTargetingTransform().GetLocation();
+		}
+	}
+
+	if (!SocketLocation.IsZero())
+	{
+		FireProjectilesFromSocket(SocketLocation);
+	}
+	else
+	{
+		// Notify 没有提供位置时退化为默认位置
+		FireProjectiles(ActorInfo);
+	}
+
+	EndAbility(CurrentSpecHandle, ActorInfo, CurrentActivationInfo, true, false);
 }
 
 void USHGameplayAbility_Projectile::FireProjectiles(const FGameplayAbilityActorInfo* ActorInfo)
@@ -346,6 +460,23 @@ void USHGameplayAbility_Projectile::FireProjectiles(const FGameplayAbilityActorI
 	{
 		const FRotator SpawnRotation = GetSpawnRotation(ActorInfo, i);
 		SpawnProjectile(ActorInfo, SpawnLocation, SpawnRotation);
+	}
+}
+
+void USHGameplayAbility_Projectile::FireProjectilesFromSocket(const FVector& SocketLocation)
+{
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	TSubclassOf<ASHProjectileBase> ProjClass = GetProjectileClassParam();
+	if (!ProjClass || !ActorInfo)
+	{
+		return;
+	}
+
+	const int32 ProjCount = GetProjectilesPerActivationParam();
+	for (int32 i = 0; i < ProjCount; ++i)
+	{
+		const FRotator SpawnRotation = GetSpawnRotationFromSocket(SocketLocation, i);
+		SpawnProjectile(ActorInfo, SocketLocation, SpawnRotation);
 	}
 }
 
@@ -368,40 +499,40 @@ FRotator USHGameplayAbility_Projectile::GetSpawnRotation(const FGameplayAbilityA
 		return FRotator::ZeroRotator;
 	}
 
+	const FVector SpawnLocation = GetSpawnLocation(ActorInfo);
+	return GetSpawnRotationFromSocket(SpawnLocation, ProjectileIndex);
+}
+
+FRotator USHGameplayAbility_Projectile::GetSpawnRotationFromSocket(const FVector& SocketLocation, int32 ProjectileIndex) const
+{
 	FRotator BaseRotation;
 
-	// 如果有目标，朝目标方向；否则朝角色前方
 	if (CurrentTarget.IsValid())
 	{
-		const FVector SpawnLocation = GetSpawnLocation(ActorInfo);
 		FVector TargetLocation = CurrentTarget->GetActorLocation();
-
-		// 如果启用 XY 平面限制，忽略 Z 轴差异
 		if (GetHomingXYOnlyParam())
 		{
-			TargetLocation.Z = SpawnLocation.Z;
+			TargetLocation.Z = SocketLocation.Z;
 		}
-
-		FVector Direction = (TargetLocation - SpawnLocation).GetSafeNormal();
-		BaseRotation = Direction.Rotation();
+		BaseRotation = (TargetLocation - SocketLocation).GetSafeNormal().Rotation();
 	}
 	else
 	{
-		BaseRotation = AvatarActor->GetActorRotation();
+		// 无目标时使用 Avatar 朝向
+		const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+		AActor* AvatarActor = ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr;
+		BaseRotation = AvatarActor ? AvatarActor->GetActorRotation() : FRotator::ZeroRotator;
 	}
 
-	// 多发时应用扩散
+	// 多发扩散
 	const int32 ProjCount = GetProjectilesPerActivationParam();
 	const float Spread = GetSpreadAngleParam();
-
 	if (ProjCount > 1 && Spread > 0.f)
 	{
 		const float TotalSpread = Spread * (ProjCount - 1);
 		const float StartAngle = -TotalSpread * 0.5f;
 		const float AngleStep = TotalSpread / (ProjCount - 1);
-		const float CurrentAngle = StartAngle + AngleStep * ProjectileIndex;
-
-		BaseRotation.Yaw += CurrentAngle;
+		BaseRotation.Yaw += StartAngle + AngleStep * ProjectileIndex;
 	}
 
 	return BaseRotation;

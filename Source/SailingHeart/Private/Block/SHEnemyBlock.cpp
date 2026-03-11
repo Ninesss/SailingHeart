@@ -41,6 +41,9 @@ ASHEnemyBlock* ASHEnemyBlock::SpawnDeferred(
 		return nullptr;
 	}
 
+	// 缓存 DataAsset（用于 AI 配置）
+	NewBlock->EnemyBlockData = EnemyData;
+
 	// 在 FinishSpawning 之前设置所有属性
 	NewBlock->BlockTypeID = EnemyData->EnemyTypeID;
 
@@ -67,4 +70,13 @@ ASHEnemyBlock* ASHEnemyBlock::SpawnDeferred(
 	NewBlock->FinishSpawning(SpawnTransform);
 
 	return NewBlock;
+}
+
+const FSHAIConfig& ASHEnemyBlock::GetAIConfig() const
+{
+	if (EnemyBlockData)
+	{
+		return EnemyBlockData->AIConfig;
+	}
+	return DefaultAIConfig;
 }

@@ -7,10 +7,12 @@
 #include "AbilitySystem/Ability/SHDamageAbilityInterface.h"
 #include "Projectile/SHProjectileBase.h"
 #include "Data/Ability/SHAbilityParams.h"
+#include "GameplayTagContainer.h"
 #include "SHGameplayAbility_Projectile.generated.h"
 
 class UGameplayEffect;
 class USHProjectileAbilityData;
+class UAbilityTask_WaitGameplayEvent;
 struct FSHProjectileAbilityParams;
 
 /**
@@ -95,14 +97,34 @@ protected:
 	// 自动寻找最近敌人
 	AActor* FindNearestEnemy(const FVector& Origin) const;
 
-	// 当前目标（可能为空）
+	// 当前目标（可能为空，在 ActivateAbility 时缓存）
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentTarget;
+
+	// ========== 动画 + Event 触发 ==========
+
+	/**
+	 * 播放攻击 Montage 并注册 WaitGameplayEvent
+	 * Montage 中的 USHAbilityAnimNotify 会在关键帧时发送 EventTag 事件
+	 * 事件触发后调用 OnAnimNotifyEvent，执行实际发射逻辑
+	 */
+	void PlayMontageAndWaitForEvent(const FGameplayAbilityActorInfo* ActorInfo);
+
+	// AnimNotify 触发时的回调
+	UFUNCTION()
+	void OnAnimNotifyEvent(FGameplayEventData Payload);
 
 	// ========== 生成逻辑 ==========
 
 	virtual FVector GetSpawnLocation(const FGameplayAbilityActorInfo* ActorInfo) const;
 	virtual FRotator GetSpawnRotation(const FGameplayAbilityActorInfo* ActorInfo, int32 ProjectileIndex) const;
+
+	/**
+	 * 通过 Socket 位置生成旋转（AnimNotify 触发时使用）
+	 * @param SocketLocation  Notify 传入的 Socket 世界位置
+	 * @param ProjectileIndex 当前投射物序号（用于多发扩散计算）
+	 */
+	FRotator GetSpawnRotationFromSocket(const FVector& SocketLocation, int32 ProjectileIndex) const;
 
 	virtual ASHProjectileBase* SpawnProjectile(
 		const FGameplayAbilityActorInfo* ActorInfo,
@@ -112,5 +134,11 @@ protected:
 	/** 配置投射物，在 FinishSpawning 前调用，子类重写添加额外配置 */
 	virtual void ConfigureProjectile(ASHProjectileBase* Projectile, const FGameplayAbilityActorInfo* ActorInfo);
 
-	virtual void FireProjectiles(const FGameplayAbilityActorInfo* ActorInfo);
+	void FireProjectiles(const FGameplayAbilityActorInfo* ActorInfo);
+
+	/**
+	 * 从 AnimNotify Payload 提取 Socket 位置后发射投射物
+	 * @param SocketLocation  Notify 中 FunctionalSKM Socket 的世界位置
+	 */
+	void FireProjectilesFromSocket(const FVector& SocketLocation);
 };

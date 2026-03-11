@@ -5,16 +5,17 @@
 #include "CoreMinimal.h"
 #include "Character/SHCombatCharacterBase.h"
 #include "Components/StateTreeComponent.h"
+#include "AI/SHAIEntityInterface.h"
 #include "SHEnemyCharacterBase.generated.h"
 
 class USHEnemyCharacterData;
 
 /**
  * 敌人角色基类
- * 继承自 SHCombatCharacterBase，自己拥有 ASC
+ * 继承自 SHCombatCharacterBase，自己拥有 ASC，通过 StateTree 执行 AI 行为
  */
 UCLASS()
-class SAILINGHEART_API ASHEnemyCharacterBase : public ASHCombatCharacterBase
+class SAILINGHEART_API ASHEnemyCharacterBase : public ASHCombatCharacterBase, public ISHAIEntityInterface
 {
 	GENERATED_BODY()
 
@@ -40,6 +41,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
 	void InitializeFromData(USHEnemyCharacterData* EnemyData);
 
+	// ISHAIEntityInterface
+	virtual const FSHAIConfig& GetAIConfig() const override;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void DrawDebugInfo() override;
@@ -51,4 +55,7 @@ protected:
 	// 缓存的敌人数据资产引用
 	UPROPERTY(BlueprintReadOnly, Category = "Enemy")
 	TObjectPtr<USHEnemyCharacterData> EnemyCharacterData;
+
+	// 默认 AI 配置（EnemyCharacterData 未设置时使用）
+	FSHAIConfig DefaultAIConfig;
 };
