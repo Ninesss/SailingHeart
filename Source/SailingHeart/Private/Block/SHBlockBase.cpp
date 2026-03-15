@@ -25,11 +25,12 @@ ASHBlockBase::ASHBlockBase()
 	MeshComponent->SetupAttachment(Root);
 	MeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	MeshComponent->SetVisibleInRayTracing(false);
+	MeshComponent->SetCollisionProfileName(TEXT("PhysicsMesh"));
 
 	// 创建功能 SKM（用于播放动画，SKM 资产在蓝图子类中配置）
 	FunctionalSKM = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FunctionalSKM"));
 	FunctionalSKM->SetupAttachment(Root);
-	FunctionalSKM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FunctionalSKM->SetCollisionProfileName(TEXT("PhysicsMesh"));
 	FunctionalSKM->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	FunctionalSKM->SetVisibleInRayTracing(false);
 	FunctionalSKM->SetIsReplicated(true);

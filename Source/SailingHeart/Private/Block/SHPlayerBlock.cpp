@@ -182,24 +182,25 @@ void ASHPlayerBlock::OnBlockCollisionBeginOverlap(UPrimitiveComponent* Overlappe
 
 void ASHPlayerBlock::HandleDeath_Implementation()
 {
-	// 防止重复调用
 	if (bIsDying)
 	{
 		return;
 	}
-	bIsDying = true;
 
 	// 清理碰撞记录
 	ProcessedCollisions.Empty();
 
-	// 从 Grid 中清理数据
-	if (ASHGridBase* Grid = OwnerGrid.Get())
+	// 从 Grid 中清理数据（Server 端，bIsDying 设置前执行）
+	if (HasAuthority())
 	{
-		Grid->ClearShipBlockAt(Cell.Row, Cell.Column);
+		if (ASHGridBase* Grid = OwnerGrid.Get())
+		{
+			Grid->ClearShipBlockAt(Cell.Row, Cell.Column);
+		}
 	}
 
-	// 调用基类处理（Destroy）- 基类会跳过因为 bIsDying 已设置
-	Destroy();
+	// 调用基类：设置 bIsDying、停止 AI/GAS、Multicast 特效、延迟销毁
+	Super::HandleDeath_Implementation();
 }
 
 bool ASHPlayerBlock::UpgradeToLevel(int32 NewLevel, const FBlockLevelConfig& NewLevelConfig, bool bRestoreFullHealth)

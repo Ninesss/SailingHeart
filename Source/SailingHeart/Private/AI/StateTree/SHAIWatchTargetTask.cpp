@@ -33,6 +33,12 @@ EStateTreeRunStatus FSHAIWatchTargetTask::Tick(FStateTreeExecutionContext& Conte
 		return EStateTreeRunStatus::Running;
 	}
 
+	// SKM 正在模拟物理（Ragdoll）时跳过旋转
+	if (SKM->IsSimulatingPhysics())
+	{
+		return EStateTreeRunStatus::Running;
+	}
+
 	// 无目标时转回默认朝向，有目标时朝向目标
 	FRotator TargetRotation;
 	if (InstanceData.CurrentTarget)

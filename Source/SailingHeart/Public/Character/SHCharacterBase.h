@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
 #include "SHCharacterBase.generated.h"
 
 UCLASS()
@@ -37,6 +38,10 @@ protected:
 	// 角色类型 ID
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Character")
 	FName CharacterTypeID;
+
+	// 专用碰撞胶囊：只与 Debris 交互，作为 Kinematic 体推动死亡碎片
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
+	TObjectPtr<UCapsuleComponent> DebrisPushCapsule;
 
 	// 绘制调试信息（子类覆盖实现）
 	virtual void DrawDebugInfo();

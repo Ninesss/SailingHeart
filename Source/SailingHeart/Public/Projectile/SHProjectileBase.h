@@ -153,6 +153,10 @@ protected:
 	UFUNCTION()
 	void OnHomingTargetDestroyed(AActor* DestroyedActor);
 
+	/** 目标 Health 归零时立刻触发，不等 Destroy() */
+	UFUNCTION()
+	void OnHomingTargetDied(AActor* DeadActor);
+
 	AActor* FindNearestEnemy(AActor* ExcludeActor = nullptr) const;
 
 	void BindHomingTargetEvents(AActor* Target);

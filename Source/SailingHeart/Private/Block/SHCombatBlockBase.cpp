@@ -9,6 +9,7 @@
 #include "Animation/AnimMontage.h"
 #include "Data/Ability/SHAbilityDataBase.h"
 #include "DrawDebugHelpers.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
 #include "SHGameplayTags.h"
 
 ASHCombatBlockBase::ASHCombatBlockBase()
@@ -20,6 +21,12 @@ ASHCombatBlockBase::ASHCombatBlockBase()
 
 	// 创建 AttributeSet
 	AttributeSet = CreateDefaultSubobject<USHBlockAttributeSet>(TEXT("AttributeSet"));
+
+	// 创建死亡 GC 组件（初始隐藏，蓝图子类中赋值 GC 资产）
+	DeathGeometryCollection = CreateDefaultSubobject<UGeometryCollectionComponent>(TEXT("DeathGeometryCollection"));
+	DeathGeometryCollection->SetupAttachment(Root);
+	DeathGeometryCollection->SetVisibility(false);
+	DeathGeometryCollection->SetSimulatePhysics(false);
 }
 
 void ASHCombatBlockBase::BeginPlay()
@@ -305,16 +312,88 @@ void ASHCombatBlockBase::OnDeathCallback(AActor* DeadActor)
 	}
 }
 
+void ASHCombatBlockBase::DestroyAfterDelay()
+{
+	Destroy();
+}
+
+void ASHCombatBlockBase::Multicast_PlayDeathEffects_Implementation()
+{
+	// 隐藏 SM
+	if (MeshComponent)
+	{
+		MeshComponent->SetVisibility(false);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	// 激活 Chaos GC
+	// 必须先将 GC 组件从父层级 detach，Chaos 才会以当前 world position 作为初始位置
+	// 否则 Chaos 会使用 BeginPlay 时 baked 的 rest state（即 Spawn 时的位置）
+	if (DeathGeometryCollection)
+	{
+		DeathGeometryCollection->SetVisibility(true);
+		DeathGeometryCollection->SetCollisionProfileName(TEXT("Debris"));
+		DeathGeometryCollection->SetSimulatePhysics(true);
+		// 强制立即碎裂所有 cluster，使碎片独立受力
+		DeathGeometryCollection->CrumbleActiveClusters();
+
+		if (DeathImpulseGC > 0.f)
+		{
+			const float Radius = DeathGeometryCollection->Bounds.SphereRadius;
+			DeathGeometryCollection->AddRadialImpulse(
+				DeathGeometryCollection->GetComponentLocation(),
+				Radius,
+				DeathImpulseGC,
+				RIF_Constant,
+				true
+			);
+		}
+	}
+
+	// SKM 开启 Ragdoll
+	if (FunctionalSKM)
+	{
+		FunctionalSKM->SetCollisionProfileName(TEXT("Debris"));
+		FunctionalSKM->SetSimulatePhysics(true);
+
+		if (DeathImpulseSKM > 0.f)
+		{
+			FunctionalSKM->AddImpulse(FVector(0.f, 0.f, DeathImpulseSKM), NAME_None, true);
+		}
+	}
+}
+
 void ASHCombatBlockBase::HandleDeath_Implementation()
 {
-	// 防止重复调用
 	if (bIsDying)
 	{
 		return;
 	}
 	bIsDying = true;
 
-	Destroy();
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	// 停止 GAS
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->CancelAllAbilities();
+	}
+
+	// 禁用碰撞，防止死亡后继续触发碰撞事件
+	if (BlockCollisionBox)
+	{
+		BlockCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	// 广播死亡特效到所有端
+	Multicast_PlayDeathEffects();
+
+	// 延迟销毁，让特效有时间播放
+	FTimerHandle DestroyTimer;
+	GetWorldTimerManager().SetTimer(DestroyTimer, this, &ASHCombatBlockBase::DestroyAfterDelay, DeathDestroyDelay, false);
 }
 
 void ASHCombatBlockBase::DrawDebugInfo()

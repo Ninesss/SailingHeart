@@ -12,6 +12,12 @@ ASHCharacterBase::ASHCharacterBase(const FObjectInitializer& ObjectInitializer) 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+
+	// 专用碎片推动胶囊：只 Block Debris channel，忽略所有游戏逻辑碰撞
+	DebrisPushCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("DebrisPushCapsule"));
+	DebrisPushCapsule->SetupAttachment(GetRootComponent());
+	DebrisPushCapsule->SetCollisionProfileName(TEXT("PhysicsMesh"));
+	DebrisPushCapsule->SetCapsuleSize(34.f, 88.f);
 }
 
 void ASHCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

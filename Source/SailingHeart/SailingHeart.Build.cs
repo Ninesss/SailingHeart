@@ -21,7 +21,8 @@ public class SailingHeart : ModuleRules
 			"GameplayTasks",
 			"Niagara",
 			"StateTreeModule",
-			"GameplayStateTreeModule"
+			"GameplayStateTreeModule",
+			"GeometryCollectionEngine"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

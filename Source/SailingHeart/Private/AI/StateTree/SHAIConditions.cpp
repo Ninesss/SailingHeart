@@ -47,3 +47,23 @@ bool FSHAIInAttackRangeCondition::TestCondition(FStateTreeExecutionContext& Cont
 	const FSHAIInAttackRangeConditionInstanceData& InstanceData = Context.GetInstanceData(*this);
 	return InstanceData.bInAttackRange;
 }
+
+// ============================================================
+//  FSHAIIsDeadCondition
+// ============================================================
+
+bool FSHAIIsDeadCondition::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const AActor* OwnerActor = Cast<AActor>(Context.GetOwner());
+	if (!OwnerActor)
+	{
+		return false;
+	}
+
+	if (OwnerActor->Implements<USHCombatInterface>())
+	{
+		return ISHCombatInterface::Execute_IsDead(OwnerActor);
+	}
+
+	return false;
+}

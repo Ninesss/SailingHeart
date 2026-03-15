@@ -12,6 +12,7 @@ class USHBlockAttributeSet;
 class UAbilitySystemComponent;
 class USHAbilityDataBase;
 class UGameplayEffect;
+class UGeometryCollectionComponent;
 
 /**
  * 单条技能授予配置 - DataAsset + 独立等级
@@ -147,6 +148,10 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayMontage(UAnimMontage* Montage);
 
+	// 在所有客户端播放死亡特效（Chaos 碎裂 + SKM Ragdoll）
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayDeathEffects();
+
 	// ========== 属性访问器 ==========
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
@@ -222,6 +227,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Effects")
 	TSubclassOf<UGameplayEffect> EnergyRegenEffectClass;
 
+	// 死亡 Chaos GC 组件（SM 碎裂效果，初始隐藏）
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Death")
+	TObjectPtr<UGeometryCollectionComponent> DeathGeometryCollection;
+
+	// 死亡后延迟销毁时间（秒），给特效足够时间播放
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0.1"))
+	float DeathDestroyDelay = 3.f;
+
+	// 死亡时对 Chaos GC 碎片施加的径向冲量大小（0 = 不施加，单位 cm/s）
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
+	float DeathImpulseGC = 300.f;
+
+	// 死亡时对 SKM Ragdoll 施加的向上冲量大小（0 = 不施加，单位 cm/s）
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
+	float DeathImpulseSKM = 300.f;
+
 	/**
 	 * 技能 TriggerTag → AnimMontage 映射表
 	 * Key：与 USHAbilityDataBase.TriggerTag 一致（如 Ability.Trigger.Projectile.Basic）
@@ -258,6 +279,9 @@ protected:
 	// 死亡回调（绑定到 AttributeSet 的 OnDeath）
 	UFUNCTION()
 	void OnDeathCallback(AActor* DeadActor);
+
+	// 延迟销毁（Timer 回调）
+	void DestroyAfterDelay();
 
 	// 死亡状态标记（防止重复调用 HandleDeath）
 	bool bIsDying = false;

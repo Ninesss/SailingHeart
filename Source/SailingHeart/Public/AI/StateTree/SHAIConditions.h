@@ -106,3 +106,33 @@ struct SAILINGHEART_API FSHAIInAttackRangeCondition : public FStateTreeCondition
 
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 };
+
+// ============================================================
+//  IsDead Condition（无需绑定，直接读取 Owner 的战斗接口）
+// ============================================================
+
+USTRUCT()
+struct FSHAIIsDeadConditionInstanceData
+{
+	GENERATED_BODY()
+};
+
+/**
+ * 条件：Owner 是否已死亡
+ * 直接调用 ISHCombatInterface::IsDead()，无需 InstanceData 绑定
+ * 用于 StateTree 根层级 Global Transition → Dead 状态
+ */
+USTRUCT(meta = (DisplayName = "SH AI Is Dead"))
+struct SAILINGHEART_API FSHAIIsDeadCondition : public FStateTreeConditionCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FSHAIIsDeadConditionInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override
+	{
+		return FSHAIIsDeadConditionInstanceData::StaticStruct();
+	}
+
+	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+};

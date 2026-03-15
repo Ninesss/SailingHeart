@@ -51,10 +51,6 @@ struct SAILINGHEART_API FSHAIEvaluator : public FStateTreeEvaluatorCommonBase
 
 	using FInstanceDataType = FSHAIEvaluatorInstanceData;
 
-	// Evaluator 检测间隔（秒），降低 Tick 频率节省性能
-	UPROPERTY(EditAnywhere, Category = "AI", meta = (ClampMin = "0.05"))
-	float TickInterval = 0.2f;
-
 	virtual const UStruct* GetInstanceDataType() const override
 	{
 		return FSHAIEvaluatorInstanceData::StaticStruct();
@@ -64,10 +60,5 @@ struct SAILINGHEART_API FSHAIEvaluator : public FStateTreeEvaluatorCommonBase
 	virtual void Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 
 private:
-	// 执行球形检测，更新 InstanceData
 	void UpdateTarget(FStateTreeExecutionContext& Context) const;
-
-	// 累积 Tick 计时器（存在 InstanceData 外部，通过 mutable 模拟）
-	// 注意：实际计时存储在独立的 InstanceData 扩展或通过 Context 获取
-	// 此处使用简化方案：每次 Tick 直接判断时间
 };

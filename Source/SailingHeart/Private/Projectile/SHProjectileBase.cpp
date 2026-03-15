@@ -8,6 +8,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/SHAbilitySystemLibrary.h"
+#include "AbilitySystem/AttributeSet/SHAttributeSetBase.h"
+#include "Interface/SHCombatInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Engine/OverlapResult.h"
 #include "Kismet/GameplayStatics.h"
@@ -246,6 +248,17 @@ void ASHProjectileBase::SetHomingTarget(AActor* NewTarget)
 
 	if (NewTarget)
 	{
+		// 目标已死（但尚未 Destroy）时，立刻寻找下一个活着的目标
+		if (NewTarget->Implements<USHCombatInterface>() && ISHCombatInterface::Execute_IsDead(NewTarget))
+		{
+			AActor* LiveTarget = FindNearestEnemy(NewTarget);
+			HomingTarget = LiveTarget;
+			NewTarget = LiveTarget;
+		}
+	}
+
+	if (NewTarget)
+	{
 		BindHomingTargetEvents(NewTarget);
 
 		if (ProjectileMovement)
@@ -280,6 +293,28 @@ void ASHProjectileBase::OnRep_HomingTarget()
 			ProjectileMovement->HomingTargetComponent = nullptr;
 		}
 	}
+}
+
+void ASHProjectileBase::OnHomingTargetDied(AActor* DeadActor)
+{
+	if (!HasAuthority() || !bAutoRetarget)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Projectile] 目标 %s 已死亡，立刻寻找新目标"), *GetNameSafe(DeadActor));
+
+	AActor* NewTarget = FindNearestEnemy(DeadActor);
+	if (NewTarget)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Projectile] 找到新目标: %s"), *GetNameSafe(NewTarget));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Projectile] 未找到新目标，投射物将直线飞行"));
+	}
+
+	SetHomingTarget(NewTarget);
 }
 
 void ASHProjectileBase::OnHomingTargetDestroyed(AActor* DestroyedActor)
@@ -339,14 +374,21 @@ AActor* ASHProjectileBase::FindNearestEnemy(AActor* ExcludeActor) const
 			continue;
 		}
 
-		if (USHAbilitySystemLibrary::AreActorsEnemies(SourceActor, Actor))
+		if (!USHAbilitySystemLibrary::AreActorsEnemies(SourceActor, Actor))
 		{
-			float DistSq = FVector::DistSquared(Origin, Actor->GetActorLocation());
-			if (DistSq < NearestDistSq)
-			{
-				NearestDistSq = DistSq;
-				NearestEnemy = Actor;
-			}
+			continue;
+		}
+
+		if (Actor->Implements<USHCombatInterface>() && ISHCombatInterface::Execute_IsDead(Actor))
+		{
+			continue;
+		}
+
+		float DistSq = FVector::DistSquared(Origin, Actor->GetActorLocation());
+		if (DistSq < NearestDistSq)
+		{
+			NearestDistSq = DistSq;
+			NearestEnemy = Actor;
 		}
 	}
 
@@ -355,17 +397,38 @@ AActor* ASHProjectileBase::FindNearestEnemy(AActor* ExcludeActor) const
 
 void ASHProjectileBase::BindHomingTargetEvents(AActor* Target)
 {
-	if (Target)
+	if (!Target)
 	{
-		Target->OnDestroyed.AddDynamic(this, &ASHProjectileBase::OnHomingTargetDestroyed);
+		return;
+	}
+
+	Target->OnDestroyed.AddDynamic(this, &ASHProjectileBase::OnHomingTargetDestroyed);
+
+	// 订阅 OnDeath delegate，在 Health 归零时立刻触发重寻，不等 Actor 真正 Destroy
+	if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target))
+	{
+		if (USHAttributeSetBase* TargetAttrSet = const_cast<USHAttributeSetBase*>(TargetASC->GetSet<USHAttributeSetBase>()))
+		{
+			TargetAttrSet->OnDeath.AddDynamic(this, &ASHProjectileBase::OnHomingTargetDied);
+		}
 	}
 }
 
 void ASHProjectileBase::UnbindHomingTargetEvents()
 {
-	if (HomingTarget.IsValid())
+	if (!HomingTarget.IsValid())
 	{
-		HomingTarget->OnDestroyed.RemoveDynamic(this, &ASHProjectileBase::OnHomingTargetDestroyed);
+		return;
+	}
+
+	HomingTarget->OnDestroyed.RemoveDynamic(this, &ASHProjectileBase::OnHomingTargetDestroyed);
+
+	if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HomingTarget.Get()))
+	{
+		if (USHAttributeSetBase* TargetAttrSet = const_cast<USHAttributeSetBase*>(TargetASC->GetSet<USHAttributeSetBase>()))
+		{
+			TargetAttrSet->OnDeath.RemoveDynamic(this, &ASHProjectileBase::OnHomingTargetDied);
+		}
 	}
 }
 
