@@ -60,6 +60,10 @@ struct FBlockCarryState
 	UPROPERTY(BlueprintReadWrite)
 	float CurrentHealth = 100.f;
 
+	// 当前能量
+	UPROPERTY(BlueprintReadWrite)
+	float CurrentEnergy = 0.f;
+
 	FBlockCarryState() = default;
 	FBlockCarryState(FName InBlockTypeID, int32 InLevel, float InHealth)
 		: BlockTypeID(InBlockTypeID), Level(InLevel), CurrentHealth(InHealth) {}

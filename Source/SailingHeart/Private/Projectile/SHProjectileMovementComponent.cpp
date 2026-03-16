@@ -2,12 +2,9 @@
 
 #include "Projectile/SHProjectileMovementComponent.h"
 #include "Projectile/SHProjectileBase.h"
-#include "Game/SHGameStateBase.h"
 
 void USHProjectileMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	const float ScaledDeltaTime = bUseGlobalTimeScale ? DeltaTime * GetGlobalTimeScale() : DeltaTime;
-
 	// 从 Owner Projectile 读取 bHomingXYOnly
 	bool bHomingXYOnly = false;
 	if (const ASHProjectileBase* Projectile = Cast<ASHProjectileBase>(GetOwner()))
@@ -18,7 +15,7 @@ void USHProjectileMovementComponent::TickComponent(float DeltaTime, ELevelTick T
 	// 如果启用 XY 平面追踪，在 Tick 前记录初始 Z 位置
 	const float InitialZ = UpdatedComponent ? UpdatedComponent->GetComponentLocation().Z : 0.f;
 
-	Super::TickComponent(ScaledDeltaTime, TickType, ThisTickFunction);
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// 如果启用 XY 平面追踪，强制保持 Z 位置不变
 	if (bHomingXYOnly && bIsHomingProjectile && UpdatedComponent)
@@ -33,18 +30,6 @@ void USHProjectileMovementComponent::TickComponent(float DeltaTime, ELevelTick T
 			Velocity.Z = 0.f;
 		}
 	}
-}
-
-float USHProjectileMovementComponent::GetGlobalTimeScale() const
-{
-	if (const UWorld* World = GetWorld())
-	{
-		if (const ASHGameStateBase* GS = World->GetGameState<ASHGameStateBase>())
-		{
-			return GS->GetGlobalTimeScale();
-		}
-	}
-	return 1.0f;
 }
 
 FVector USHProjectileMovementComponent::ComputeHomingAcceleration(const FVector& InVelocity, float DeltaTime) const

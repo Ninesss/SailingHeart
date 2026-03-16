@@ -36,10 +36,6 @@ struct SAILINGHEART_API FSHAIWatchTargetTask : public FStateTreeTaskCommonBase
 	UPROPERTY(EditAnywhere, Category = "AI", meta = (ClampMin = "0"))
 	float TurnSpeed = 360.f;
 
-	// 无目标时转回的默认朝向（对应 SHBlockBase 构造函数里 SKM 的初始 RelativeRotation）
-	UPROPERTY(EditAnywhere, Category = "AI")
-	FRotator DefaultRotation = FRotator(0.f, -90.f, 0.f);
-
 	virtual const UStruct* GetInstanceDataType() const override
 	{
 		return FSHAIWatchTargetTaskInstanceData::StaticStruct();

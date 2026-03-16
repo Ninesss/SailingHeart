@@ -91,6 +91,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Time")
 	float SlowedTimeScale = 0.1f;
 
+	/**
+	 * 注册 Actor 到时间缩放系统
+	 * 注册后 GlobalTimeScale 变化时会自动设置该 Actor 的 CustomTimeDilation
+	 * 在 BeginPlay 中调用，无需手动订阅 OnGlobalTimeScaleChanged
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Time")
+	void RegisterActorForTimeScale(AActor* Actor);
+
 protected:
 	// 玩家Grid引用（唯一）
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
@@ -110,4 +118,7 @@ private:
 
 	// 时间减缓激活计数（多人同时使用时不会叠加效果）
 	int32 TimeSlowActiveCount = 0;
+
+	// 需要随 GlobalTimeScale 同步 CustomTimeDilation 的 Actor 列表
+	TArray<TWeakObjectPtr<AActor>> TimeScaleActors;
 };

@@ -138,4 +138,7 @@ private:
 
 	// 计算生成位置
 	FVector CalculateSpawnLocation(int32 LateralOffset);
+
+	// 根据 SpawnDirection 计算方块朝向网格的初始 Yaw 旋转
+	FRotator GetFacingRotation() const;
 };

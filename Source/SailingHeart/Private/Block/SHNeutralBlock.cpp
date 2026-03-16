@@ -43,14 +43,15 @@ ASHNeutralBlock* ASHNeutralBlock::SpawnDeferred(
 	UWorld* World,
 	USHNeutralBlockData* NeutralData,
 	const FVector& Location,
-	int32 InLevel)
+	int32 InLevel,
+	FRotator SpawnRotation)
 {
 	if (!World || !NeutralData || !NeutralData->NeutralClass)
 	{
 		return nullptr;
 	}
 
-	FTransform SpawnTransform(FRotator::ZeroRotator, Location);
+	FTransform SpawnTransform(SpawnRotation, Location);
 
 	// 使用 SpawnActorDeferred 生成方块
 	ASHNeutralBlock* NewBlock = World->SpawnActorDeferred<ASHNeutralBlock>(

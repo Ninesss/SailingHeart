@@ -141,7 +141,7 @@ void ASHWorldBlockSpawner::SpawnEnemyBlock(const FVector& Location)
 	}
 
 	int32 SpawnLevel = FMath::RandRange(MinEnemyLevel, MaxEnemyLevel);
-	ASHEnemyBlock::SpawnDeferred(GetWorld(), EnemyData, Location, SpawnLevel);
+	ASHEnemyBlock::SpawnDeferred(GetWorld(), EnemyData, Location, SpawnLevel, GetFacingRotation());
 }
 
 void ASHWorldBlockSpawner::SpawnNeutralBlock(const FVector& Location)
@@ -153,8 +153,21 @@ void ASHWorldBlockSpawner::SpawnNeutralBlock(const FVector& Location)
 	}
 
 	int32 SpawnLevel = FMath::RandRange(MinNeutralLevel, MaxNeutralLevel);
-
 	ASHNeutralBlock::SpawnDeferred(GetWorld(), NeutralData, Location, SpawnLevel);
+}
+
+FRotator ASHWorldBlockSpawner::GetFacingRotation() const
+{
+	// 方块朝向应与 SpawnDirection 相反（朝向网格）
+	// UE Yaw: 0=+X, 90=+Y, 180=-X, 270(-90)=-Y
+	switch (SpawnDirection)
+	{
+	case EGridMovementDirection::PositiveX:  return FRotator(0.f, 180.f, 0.f);
+	case EGridMovementDirection::NegativeX:  return FRotator(0.f,   0.f, 0.f);
+	case EGridMovementDirection::PositiveY:  return FRotator(0.f, 270.f, 0.f);
+	case EGridMovementDirection::NegativeY:  return FRotator(0.f,  90.f, 0.f);
+	default:                                 return FRotator::ZeroRotator;
+	}
 }
 
 ASHGridBase* ASHWorldBlockSpawner::GetTargetGrid()

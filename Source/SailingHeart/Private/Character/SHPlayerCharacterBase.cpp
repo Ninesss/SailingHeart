@@ -48,13 +48,22 @@ ASHPlayerCharacterBase::ASHPlayerCharacterBase(const FObjectInitializer& ObjectI
 	FollowCamera->FieldOfView = 50.f;
 	FollowCamera->SetRelativeRotation(FRotator(-40, 0, 0));
 
-	// 搬运视觉组件
+	// 搬运视觉组件（SM）
 	CarryMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CarryMeshComponent"));
 	CarryMeshComponent->SetupAttachment(RootComponent);
 	CarryMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, CarryHeightOffset));
 	CarryMeshComponent->SetRelativeScale3D(FVector(CarryMeshScale));
 	CarryMeshComponent->SetVisibility(false);
 	CarryMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// 搬运视觉组件（SKM）
+	CarrySKMComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CarrySKMComponent"));
+	CarrySKMComponent->SetupAttachment(RootComponent);
+	CarrySKMComponent->SetRelativeLocation(FVector(0.0f, 0.0f, CarryHeightOffset + 200.f));
+	CarrySKMComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	CarrySKMComponent->SetRelativeScale3D(FVector(CarryMeshScale));
+	CarrySKMComponent->SetVisibility(false);
+	CarrySKMComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ASHPlayerCharacterBase::BeginPlay()
@@ -69,6 +78,7 @@ void ASHPlayerCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 	DOREPLIFETIME(ASHPlayerCharacterBase, bIsCarrying);
 	DOREPLIFETIME(ASHPlayerCharacterBase, CurrentCarryMesh);
+	DOREPLIFETIME(ASHPlayerCharacterBase, CurrentCarrySKM);
 	DOREPLIFETIME(ASHPlayerCharacterBase, CarriedBlockState);
 }
 
@@ -146,7 +156,7 @@ bool ASHPlayerCharacterBase::CanJumpInternal_Implementation() const
 
 // ========== 搬运相关 ==========
 
-void ASHPlayerCharacterBase::StartCarrying(const FBlockCarryState& InBlockState, UStaticMesh* InCarryMesh)
+void ASHPlayerCharacterBase::StartCarrying(const FBlockCarryState& InBlockState, UStaticMesh* InCarryMesh, USkeletalMesh* InCarrySKM)
 {
 	if (!HasAuthority())
 	{
@@ -156,6 +166,7 @@ void ASHPlayerCharacterBase::StartCarrying(const FBlockCarryState& InBlockState,
 	bIsCarrying = true;
 	CarriedBlockState = InBlockState;
 	CurrentCarryMesh = InCarryMesh;
+	CurrentCarrySKM = InCarrySKM;
 	UpdateCarryVisual();
 }
 
@@ -169,6 +180,7 @@ void ASHPlayerCharacterBase::StopCarrying()
 	bIsCarrying = false;
 	CarriedBlockState = FBlockCarryState();
 	CurrentCarryMesh = nullptr;
+	CurrentCarrySKM = nullptr;
 	UpdateCarryVisual();
 }
 
@@ -182,11 +194,20 @@ void ASHPlayerCharacterBase::UpdateCarryVisual()
 	if (CarryMeshComponent)
 	{
 		CarryMeshComponent->SetVisibility(bIsCarrying);
-
 		if (bIsCarrying && CurrentCarryMesh)
 		{
 			CarryMeshComponent->SetStaticMesh(CurrentCarryMesh);
 			CarryMeshComponent->SetRelativeScale3D(FVector(CarryMeshScale));
+		}
+	}
+
+	if (CarrySKMComponent)
+	{
+		CarrySKMComponent->SetVisibility(bIsCarrying && CurrentCarrySKM != nullptr);
+		if (bIsCarrying && CurrentCarrySKM)
+		{
+			CarrySKMComponent->SetSkeletalMesh(CurrentCarrySKM);
+			CarrySKMComponent->SetRelativeScale3D(FVector(CarryMeshScale));
 		}
 	}
 }

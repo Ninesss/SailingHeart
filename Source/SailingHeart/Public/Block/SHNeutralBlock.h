@@ -36,7 +36,8 @@ public:
 		UWorld* World,
 		USHNeutralBlockData* NeutralData,
 		const FVector& Location,
-		int32 InLevel
+		int32 InLevel,
+		FRotator SpawnRotation = FRotator::ZeroRotator
 	);
 
 	UFUNCTION(BlueprintCallable, Category = "Neutral")

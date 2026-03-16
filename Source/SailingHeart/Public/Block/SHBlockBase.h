@@ -10,6 +10,8 @@
 #include "GameplayTagContainer.h"
 #include "SHBlockBase.generated.h"
 
+class ASHGameStateBase;
+
 /**
  * 方块基类 - 所有方块类型的基础
  * 包含：碰撞盒、基础组件、阵营标签

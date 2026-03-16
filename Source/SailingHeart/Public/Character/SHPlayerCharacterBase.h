@@ -56,7 +56,7 @@ public:
 	bool IsCarryingBlock() const { return bIsCarrying; }
 
 	UFUNCTION(BlueprintCallable, Category = "Carry")
-	void StartCarrying(const FBlockCarryState& InBlockState, UStaticMesh* InCarryMesh);
+	void StartCarrying(const FBlockCarryState& InBlockState, UStaticMesh* InCarryMesh, USkeletalMesh* InCarrySKM = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "Carry")
 	void StopCarrying();
@@ -93,6 +93,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Carry")
 	TObjectPtr<UStaticMeshComponent> CarryMeshComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Carry")
+	TObjectPtr<USkeletalMeshComponent> CarrySKMComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Carry")
 	float CarryHeightOffset = 160.0f;
 
@@ -105,6 +108,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CarryState)
 	UStaticMesh* CurrentCarryMesh = nullptr;
+
+	UPROPERTY(ReplicatedUsing = OnRep_CarryState)
+	USkeletalMesh* CurrentCarrySKM = nullptr;
 
 	UPROPERTY(Replicated)
 	FBlockCarryState CarriedBlockState;

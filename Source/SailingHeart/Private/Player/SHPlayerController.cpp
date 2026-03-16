@@ -10,6 +10,7 @@
 #include "Block/SHBlockBase.h"
 #include "Block/SHPlayerBlock.h"
 #include "Block/SHNeutralBlock.h"
+#include "Data/SHNeutralBlockData.h"
 #include "Game/SHGameStateBase.h"
 #include "Data/SHPlayerBlockData.h"
 #include "Data/SHPlayerCharacterData.h"
@@ -167,6 +168,11 @@ void ASHPlayerController::ServerPlaceBlock_Implementation()
 		return;
 	}
 
+	if (TargetGrid->GetNeutralBlockAtCell(Row, Column))
+	{
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -266,6 +272,12 @@ void ASHPlayerController::ServerCarryBlock_Implementation()
 			return;
 		}
 
+		if (TargetGrid->GetNeutralBlockAtCell(Row, Column))
+		{
+			ClientNotifyBlockExists();
+			return;
+		}
+
 		// 使用统一的 Deferred 生成方法
 		ASHPlayerBlock* NewBlock = ASHPlayerBlock::SpawnDeferred(
 			GetWorld(),
@@ -273,7 +285,8 @@ void ASHPlayerController::ServerCarryBlock_Implementation()
 			TargetGrid,
 			Row, Column,
 			CarriedState.Level,
-			CarriedState.CurrentHealth
+			CarriedState.CurrentHealth,
+			CarriedState.CurrentEnergy
 		);
 
 		if (NewBlock)
@@ -288,10 +301,30 @@ void ASHPlayerController::ServerCarryBlock_Implementation()
 		{
 			FBlockCarryState BlockState = BlockInCell->CreateCarryState();
 			UStaticMesh* CarryMesh = BlockInCell->GetMesh();
+			USkeletalMesh* CarrySKM = BlockInCell->GetFunctionalSKM() ? BlockInCell->GetFunctionalSKM()->GetSkeletalMeshAsset() : nullptr;
 
 			TargetGrid->ClearShipBlockAt(Row, Column);
 			BlockInCell->Destroy();
-			PlayerCharacter->StartCarrying(BlockState, CarryMesh);
+			PlayerCharacter->StartCarrying(BlockState, CarryMesh, CarrySKM);
+			return;
+		}
+
+		// 没有玩家方块时，检查格子上是否有中立方块
+		ASHNeutralBlock* NeutralBlock = TargetGrid->GetNeutralBlockAtCell(Row, Column);
+		if (NeutralBlock)
+		{
+			// 搬起时立即转化为对应的玩家方块状态（满血满能量）
+			FBlockCarryState BlockState;
+			BlockState.BlockTypeID = NeutralBlock->GetTargetBlockTypeID();
+			BlockState.Level = NeutralBlock->GetNeutralLevel();
+			BlockState.CurrentHealth = -1.f;
+			BlockState.CurrentEnergy = -1.f;
+
+			UStaticMesh* CarryMesh = NeutralBlock->GetMesh();
+			USkeletalMesh* CarrySKM = NeutralBlock->GetFunctionalSKM() ? NeutralBlock->GetFunctionalSKM()->GetSkeletalMeshAsset() : nullptr;
+
+			NeutralBlock->Destroy();
+			PlayerCharacter->StartCarrying(BlockState, CarryMesh, CarrySKM);
 		}
 	}
 }

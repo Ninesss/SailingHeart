@@ -3,6 +3,7 @@
 #include "Block/SHBlockBase.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
+#include "Game/SHGameStateBase.h"
 
 // 静态变量定义
 bool ASHBlockBase::bGlobalShowDebugInfo = false;
@@ -31,6 +32,7 @@ ASHBlockBase::ASHBlockBase()
 	FunctionalSKM = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FunctionalSKM"));
 	FunctionalSKM->SetupAttachment(Root);
 	FunctionalSKM->SetCollisionProfileName(TEXT("PhysicsMesh"));
+	FunctionalSKM->SetRelativeLocation(FVector(0.f, 0.f, BlockCellSize));
 	FunctionalSKM->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	FunctionalSKM->SetVisibleInRayTracing(false);
 	FunctionalSKM->SetIsReplicated(true);
@@ -55,6 +57,11 @@ void ASHBlockBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void ASHBlockBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (ASHGameStateBase* GS = GetWorld()->GetGameState<ASHGameStateBase>())
+	{
+		GS->RegisterActorForTimeScale(this);
+	}
 }
 
 void ASHBlockBase::Tick(float DeltaTime)

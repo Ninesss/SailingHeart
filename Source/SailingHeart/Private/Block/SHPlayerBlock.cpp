@@ -31,7 +31,8 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 	ASHGridBase* Grid,
 	int32 Row, int32 Column,
 	int32 Level,
-	float CurrentHealth)
+	float CurrentHealth,
+	float CurrentEnergy)
 {
 	if (!World || !BlockData || !BlockData->BlockClass || !Grid)
 	{
@@ -78,6 +79,7 @@ ASHPlayerBlock* ASHPlayerBlock::SpawnDeferred(
 	Params.MaxEnergy = LevelConfig.MaxEnergy;
 	Params.EnergyRegen = LevelConfig.EnergyRegen;
 	Params.CurrentHealth = CurrentHealth;
+	Params.CurrentEnergy = CurrentEnergy;
 	Params.AbilityDataAssets = LevelConfig.GrantedAbilities;
 
 	// 在 FinishSpawning 之前初始化属性（这样碰撞事件触发时属性已就绪）
@@ -276,6 +278,7 @@ FBlockCarryState ASHPlayerBlock::CreateCarryState() const
 	{
 		State.Level = FMath::RoundToInt(AttributeSet->GetLevel());
 		State.CurrentHealth = AttributeSet->GetHealth();
+		State.CurrentEnergy = AttributeSet->GetEnergy();
 	}
 
 	return State;

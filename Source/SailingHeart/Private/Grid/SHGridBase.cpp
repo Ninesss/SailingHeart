@@ -3,7 +3,9 @@
 
 #include "Grid/SHGridBase.h"
 #include "Block/SHPlayerBlock.h"
+#include "Block/SHNeutralBlock.h"
 #include "Game/SHGameStateBase.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "DrawDebugHelpers.h"
@@ -161,6 +163,33 @@ bool ASHGridBase::HasShipBlockAt(const int32 Row, const int32 Column) const
 	return CellData.Contains(Key) && CellData[Key] != nullptr;
 }
 
+ASHNeutralBlock* ASHGridBase::GetNeutralBlockAtCell(const int32 Row, const int32 Column) const
+{
+	const FVector CellCenter = GetCellCenterLocation(Row, Column);
+	const float DetectRadius = CellSize * 0.4f;
+
+	TArray<AActor*> OverlappedActors;
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+
+	UKismetSystemLibrary::SphereOverlapActors(
+		this,
+		CellCenter,
+		DetectRadius,
+		ObjectTypes,
+		ASHNeutralBlock::StaticClass(),
+		TArray<AActor*>(),
+		OverlappedActors
+	);
+
+	if (OverlappedActors.Num() > 0)
+	{
+		return Cast<ASHNeutralBlock>(OverlappedActors[0]);
+	}
+
+	return nullptr;
+}
+
 ASHGridBase* ASHGridBase::FindGridAtLocation(const UObject* WorldContextObject, const FVector& WorldLocation)
 {
 	if (!WorldContextObject)
@@ -291,10 +320,15 @@ void ASHGridBase::BeginPlay()
 	// 缓存 GameState 指针
 	CachedGameState = GetWorld()->GetGameState<ASHGameStateBase>();
 
-	// 如果是玩家Grid，注册到GameState
-	if (HasAuthority() && GridOwnerType == EGridOwnerType::Player && CachedGameState)
+	if (CachedGameState)
 	{
-		CachedGameState->RegisterPlayerGrid(this);
+		// 如果是玩家Grid，注册到GameState
+		if (HasAuthority() && GridOwnerType == EGridOwnerType::Player)
+		{
+			CachedGameState->RegisterPlayerGrid(this);
+		}
+
+		CachedGameState->RegisterActorForTimeScale(this);
 	}
 
 	SpawnBorders();
@@ -314,12 +348,8 @@ void ASHGridBase::Tick(float DeltaTime)
 	// Grid 移动逻辑（只在服务器执行）
 	if (HasAuthority() && bEnableMovement && MovementDirection != EGridMovementDirection::None)
 	{
-		// 使用缓存的 GameState 获取全局时间流速
-		const float GlobalTimeScale = CachedGameState ? CachedGameState->GetGlobalTimeScale() : 1.0f;
-
-		// 计算移动量：速度 * DeltaTime * 全局时间流速
 		const FVector DirectionVector = GetMovementDirectionVector();
-		const FVector Movement = DirectionVector * MovementSpeed * DeltaTime * GlobalTimeScale;
+		const FVector Movement = DirectionVector * MovementSpeed * DeltaTime;
 
 		// 移动 Grid
 		AddActorWorldOffset(Movement);

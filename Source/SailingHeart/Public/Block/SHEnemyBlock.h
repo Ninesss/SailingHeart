@@ -35,7 +35,8 @@ public:
 		UWorld* World,
 		USHEnemyBlockData* EnemyData,
 		const FVector& Location,
-		int32 Level = 1
+		int32 Level = 1,
+		FRotator SpawnRotation = FRotator::ZeroRotator
 	);
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy")

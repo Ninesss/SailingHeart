@@ -39,16 +39,21 @@ EStateTreeRunStatus FSHAIWatchTargetTask::Tick(FStateTreeExecutionContext& Conte
 		return EStateTreeRunStatus::Running;
 	}
 
-	// 无目标时转回默认朝向，有目标时朝向目标
+	// SKM RelativeRotation = WorldFacingYaw - ActorYaw - 90
+	// 减去 ActorYaw 是因为 RelativeRotation 是相对于 Actor 的，需要转换到局部空间
+	// -90 是 mesh 资产朝向的固定偏移
+	const float ActorYaw = OwnerActor->GetActorRotation().Yaw;
+
 	FRotator TargetRotation;
 	if (InstanceData.CurrentTarget)
 	{
 		const FVector ToTarget = InstanceData.CurrentTarget->GetActorLocation() - OwnerActor->GetActorLocation();
-		TargetRotation = FRotator(0.f, ToTarget.Rotation().Yaw - 90.f, 0.f);
+		TargetRotation = FRotator(0.f, ToTarget.Rotation().Yaw - ActorYaw - 90.f, 0.f);
 	}
 	else
 	{
-		TargetRotation = DefaultRotation;
+		// 无目标：默认朝向 = Actor forward 方向，转换到局部空间后恒为 -90
+		TargetRotation = FRotator(0.f, -90.f, 0.f);
 	}
 
 	if (TurnSpeed <= 0.f || DeltaTime <= 0.f)

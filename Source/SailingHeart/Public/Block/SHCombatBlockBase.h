@@ -116,6 +116,10 @@ struct FBlockInitParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentHealth = -1.f;
 
+	// 当前能量（-1 表示使用 MaxEnergy，即满能量）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CurrentEnergy = -1.f;
+
 	// 最大能量（0 = 无能量系统）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxEnergy = 0.f;

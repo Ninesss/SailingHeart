@@ -46,7 +46,8 @@ public:
 		ASHGridBase* Grid,
 		int32 Row, int32 Column,
 		int32 Level,
-		float CurrentHealth = -1.f
+		float CurrentHealth = -1.f,
+		float CurrentEnergy = -1.f
 	);
 
 	// ========== 升级 ==========

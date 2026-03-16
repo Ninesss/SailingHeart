@@ -233,7 +233,16 @@ void ASHCombatBlockBase::InitializeAttributes(const FBlockInitParams& Params)
 	AttributeSet->SetActionSpeed(Params.ActionSpeed);
 	AttributeSet->SetMaxEnergy(Params.MaxEnergy);
 	AttributeSet->SetEnergyRegen(Params.EnergyRegen);
-	AttributeSet->SetEnergy(Params.MaxEnergy);  // 初始能量 = 最大能量
+
+	// 处理当前能量（-1 表示满能量，否则使用指定值）
+	if (Params.CurrentEnergy >= 0.f)
+	{
+		AttributeSet->SetEnergy(FMath::Clamp(Params.CurrentEnergy, 0.f, Params.MaxEnergy));
+	}
+	else
+	{
+		AttributeSet->SetEnergy(Params.MaxEnergy);
+	}
 
 	// 处理当前血量（-1 表示满血，否则使用指定值）
 	if (Params.CurrentHealth >= 0.f)

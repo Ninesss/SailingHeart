@@ -18,14 +18,15 @@ ASHEnemyBlock* ASHEnemyBlock::SpawnDeferred(
 	UWorld* World,
 	USHEnemyBlockData* EnemyData,
 	const FVector& Location,
-	int32 Level)
+	int32 Level,	FRotator SpawnRotation)
+
 {
 	if (!World || !EnemyData || !EnemyData->EnemyClass)
 	{
 		return nullptr;
 	}
 
-	FTransform SpawnTransform(FRotator::ZeroRotator, Location);
+	FTransform SpawnTransform(SpawnRotation, Location);
 
 	// 使用 SpawnActorDeferred 生成方块
 	ASHEnemyBlock* NewBlock = World->SpawnActorDeferred<ASHEnemyBlock>(

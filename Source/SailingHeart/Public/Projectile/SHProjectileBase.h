@@ -162,10 +162,4 @@ protected:
 	void BindHomingTargetEvents(AActor* Target);
 	void UnbindHomingTargetEvents();
 
-	// ========== GlobalTimeScale 事件 ==========
-
-	TWeakObjectPtr<ASHGameStateBase> CachedGameState;
-
-	UFUNCTION()
-	void OnGlobalTimeScaleChanged(float NewTimeScale);
 };

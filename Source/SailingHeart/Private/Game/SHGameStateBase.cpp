@@ -6,6 +6,7 @@
 #include "Data/SHPlayerBlockData.h"
 #include "Data/SHPlayerCharacterData.h"
 #include "Net/UnrealNetwork.h"
+#include "Physics/Experimental/PhysScene_Chaos.h"
 
 ASHGameStateBase::ASHGameStateBase()
 {
@@ -42,8 +43,38 @@ void ASHGameStateBase::OnRep_GlobalTimeScale()
 	BroadcastTimeScaleChanged();
 }
 
+void ASHGameStateBase::RegisterActorForTimeScale(AActor* Actor)
+{
+	if (!Actor)
+	{
+		return;
+	}
+
+	TimeScaleActors.AddUnique(Actor);
+	Actor->CustomTimeDilation = GlobalTimeScale;
+}
+
 void ASHGameStateBase::BroadcastTimeScaleChanged()
 {
+	// 同步 Chaos Solver 时间缩放（影响 GC 碎片物理）
+	if (UWorld* World = GetWorld())
+	{
+		if (FPhysScene* PhysScene = World->GetPhysicsScene())
+		{
+			PhysScene->SetNetworkDeltaTimeScale(GlobalTimeScale);
+		}
+	}
+
+	// 统一设置所有注册 Actor 的 CustomTimeDilation
+	TimeScaleActors.RemoveAll([](const TWeakObjectPtr<AActor>& A) { return !A.IsValid(); });
+	for (const TWeakObjectPtr<AActor>& WeakActor : TimeScaleActors)
+	{
+		if (AActor* Actor = WeakActor.Get())
+		{
+			Actor->CustomTimeDilation = GlobalTimeScale;
+		}
+	}
+
 	OnGlobalTimeScaleChanged.Broadcast(GlobalTimeScale);
 }
 

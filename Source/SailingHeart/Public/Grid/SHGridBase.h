@@ -9,6 +9,7 @@
 #include "SHGridBase.generated.h"
 
 class ASHPlayerBlock;
+class ASHNeutralBlock;
 class ASHGameStateBase;
 
 // Grid 所有者类型
@@ -160,6 +161,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool HasShipBlockAt(int32 Row, int32 Column) const;
+
+	// 通过空间检测查找指定格子上的中立方块（不依赖 map，纯按位置查询）
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	ASHNeutralBlock* GetNeutralBlockAtCell(int32 Row, int32 Column) const;
 
 	// ========== Grid 移动 ==========
 

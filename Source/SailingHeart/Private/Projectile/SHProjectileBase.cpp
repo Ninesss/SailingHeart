@@ -69,28 +69,15 @@ void ASHProjectileBase::BeginPlay()
 		);
 	}
 
-	// 绑定 GlobalTimeScale 事件
-	if (UWorld* World = GetWorld())
+	if (ASHGameStateBase* GS = GetWorld()->GetGameState<ASHGameStateBase>())
 	{
-		CachedGameState = World->GetGameState<ASHGameStateBase>();
-		if (CachedGameState.IsValid())
-		{
-			CachedGameState->OnGlobalTimeScaleChanged.AddDynamic(this, &ASHProjectileBase::OnGlobalTimeScaleChanged);
-			// 初始化时设置一次
-			OnGlobalTimeScaleChanged(CachedGameState->GetGlobalTimeScale());
-		}
+		GS->RegisterActorForTimeScale(this);
 	}
 }
 
 void ASHProjectileBase::Destroyed()
 {
 	UnbindHomingTargetEvents();
-
-	// 解绑 GlobalTimeScale 事件
-	if (CachedGameState.IsValid())
-	{
-		CachedGameState->OnGlobalTimeScaleChanged.RemoveDynamic(this, &ASHProjectileBase::OnGlobalTimeScaleChanged);
-	}
 
 	if (IsValid(LoopingSoundComponent))
 	{
@@ -432,10 +419,3 @@ void ASHProjectileBase::UnbindHomingTargetEvents()
 	}
 }
 
-void ASHProjectileBase::OnGlobalTimeScaleChanged(float NewTimeScale)
-{
-	if (ProjectileVFX)
-	{
-		ProjectileVFX->SetCustomTimeDilation(NewTimeScale);
-	}
-}
