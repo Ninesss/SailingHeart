@@ -50,16 +50,20 @@ public:
 	FVector GridOrigin = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
-	int32 Rows = 16;
+	int32 Rows = 8;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
-	int32 Columns = 10;
+	int32 Columns = 12;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	float CellSize = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
 	float LineThickness = 5.0f;
+
+	// 网格线的 Z 轴高度偏移
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid")
+	float GridMeshHeightOffset = 0.0f;
 
 	// Border 蓝图类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Border")
@@ -78,7 +82,7 @@ public:
 	UFUNCTION(CallInEditor, Category = "Grid")
 	void GenerateGrid();
 
-	// 更新 Border 尺寸的函数接口 - 在蓝图中实现，使用 GetPlaceableWidth/Height 获取尺寸
+	// 更新 Border 尺寸的函数接口 - 在蓝图中实现，使用 GetPlaceableRowSize/GetPlaceableColumnSize 获取尺寸
 	UFUNCTION(BlueprintNativeEvent, Category = "Border")
 	void UpdateBorderSize();
 	virtual void UpdateBorderSize_Implementation();
@@ -89,13 +93,14 @@ public:
 	virtual void InitializeBorder_Implementation();
 
 	// 获取 Grid 总尺寸（包含边缘玩家区域）
+	// Width：Y 轴方向（左右，Columns）；Height：X 轴方向（前后，Rows）
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	float GetGridWidth() const { return (Columns + 2) * CellSize; }
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	float GetGridHeight() const { return (Rows + 2) * CellSize; }
 
-	// 获取实际行列数（包含边缘）
+	// 获取实际行列数（包含边缘）：Row → X，Column → Y
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	int32 GetTotalRows() const { return Rows + 2; }
 
@@ -128,12 +133,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool IsCellPlaceable(int32 Row, int32 Column) const;
 
-	// 获取可放置区域的尺寸（Border 尺寸，等于设置的行列数）
+	// 获取可放置区域的尺寸：RowSize → X 轴前后深度（Rows），ColumnSize → Y 轴左右宽度（Columns）
 	UFUNCTION(BlueprintCallable, Category = "Grid")
-	float GetPlaceableWidth() const { return Columns * CellSize; }
+	float GetPlaceableRowSize() const { return Rows * CellSize; }
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
-	float GetPlaceableHeight() const { return Rows * CellSize; }
+	float GetPlaceableColumnSize() const { return Columns * CellSize; }
 
 	// 检查世界坐标是否在此Grid范围内
 	UFUNCTION(BlueprintCallable, Category = "Grid")

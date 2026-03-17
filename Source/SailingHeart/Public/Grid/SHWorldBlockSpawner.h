@@ -14,6 +14,34 @@ class ASHNeutralBlock;
 class USHEnemyBlockData;
 class USHNeutralBlockData;
 
+// 带权重的敌人方块条目
+USTRUCT(BlueprintType)
+struct FSHEnemyBlockEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USHEnemyBlockData* BlockData = nullptr;
+
+	// 生成权重（相对值，越大越容易生成）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0"))
+	float Weight = 1.0f;
+};
+
+// 带权重的中立方块条目
+USTRUCT(BlueprintType)
+struct FSHNeutralBlockEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USHNeutralBlockData* BlockData = nullptr;
+
+	// 生成权重（相对值，越大越容易生成）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0"))
+	float Weight = 1.0f;
+};
+
 /**
  * 世界方块生成器 - 同时支持生成敌人方块和中立方块
  */
@@ -27,9 +55,9 @@ public:
 
 	// ========== 敌人方块配置 ==========
 
-	// 敌人方块数据列表
+	// 敌人方块数据列表（含权重）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawner")
-	TArray<USHEnemyBlockData*> EnemyBlockDataList;
+	TArray<FSHEnemyBlockEntry> EnemyBlockDataList;
 
 	// 敌人方块等级范围
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawner")
@@ -40,16 +68,16 @@ public:
 
 	// ========== 中立方块配置 ==========
 
-	// 中立方块数据列表
+	// 中立方块数据列表（含权重）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neutral Spawner")
-	TArray<USHNeutralBlockData*> NeutralBlockDataList;
+	TArray<FSHNeutralBlockEntry> NeutralBlockDataList;
 
 	// 中立方块等级范围
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neutral Spawner")
 	int32 MinNeutralLevel = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Neutral Spawner")
-	int32 MaxNeutralLevel = 2;
+	int32 MaxNeutralLevel = 1;
 
 	// 中立方块生成权重（相对于敌人方块）
 	// 例如：NeutralSpawnWeight = 0.3 表示 30% 概率生成中立方块
@@ -64,7 +92,7 @@ public:
 
 	// 生成间隔（秒）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
-	float SpawnInterval = 5.0f;
+	float SpawnInterval = 3.0f;
 
 	// 在Grid前方多少个单元格生成（沿移动方向）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
@@ -80,10 +108,10 @@ public:
 
 	// 生成位置的横向偏移范围（相对于Grid中心，单位：格）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
-	int32 MinLateralOffset = -8;
+	int32 MinLateralOffset = -6;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
-	int32 MaxLateralOffset = 7;
+	int32 MaxLateralOffset = 5;
 
 	// BeginPlay时自动开始生成
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
@@ -129,7 +157,7 @@ private:
 	// 生成中立方块
 	void SpawnNeutralBlock(const FVector& Location);
 
-	// 随机选择数据
+	// 按权重随机选择数据
 	USHEnemyBlockData* GetRandomEnemyData();
 	USHNeutralBlockData* GetRandomNeutralData();
 

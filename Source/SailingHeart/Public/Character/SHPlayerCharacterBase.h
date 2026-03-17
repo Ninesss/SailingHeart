@@ -66,7 +66,19 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 	virtual void DrawDebugInfo() override;
+
+	// 景深配置
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|DOF")
+	float DOF_Aperture = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|DOF")
+	float DOF_SensorWidth = 600.0f;
+
+	// 焦点高度比例（0=脚底，0.5=重心，1=头顶）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|DOF", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DOF_FocusHeightRatio = 0.8f;
 
 	// 初始化 ASC（从 PlayerState 获取）
 	void InitializeAbilitySystem();

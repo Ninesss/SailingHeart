@@ -3,7 +3,8 @@
     "allow": [
       "Bash(dir:*)",
       "Bash(grep \"\\\\.h$\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

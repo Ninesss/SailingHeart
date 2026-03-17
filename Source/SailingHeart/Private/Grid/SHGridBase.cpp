@@ -67,15 +67,15 @@ bool ASHGridBase::GetCellIndexFromLocation(const FVector& WorldLocation, int32& 
 	// 计算 Grid 左下角的世界坐标（使用实际尺寸）
 	const int32 TotalRows = GetTotalRows();
 	const int32 TotalColumns = GetTotalColumns();
-	const FVector CenterOffset(-TotalColumns * CellSize * 0.5f, -TotalRows * CellSize * 0.5f, 0.0f);
+	const FVector CenterOffset(-TotalRows * CellSize * 0.5f, -TotalColumns * CellSize * 0.5f, 0.0f);
 	const FVector GridBottomLeft = GetActorLocation() + GridOrigin + CenterOffset;
 
 	// 将世界坐标转换为相对于 Grid 左下角的局部坐标
 	const FVector LocalPos = WorldLocation - GridBottomLeft;
 
-	// 计算单元格索引
-	OutColumn = FMath::FloorToInt(LocalPos.X / CellSize);
-	OutRow = FMath::FloorToInt(LocalPos.Y / CellSize);
+	// 计算单元格索引：Row → X 轴（前进方向），Column → Y 轴（左右方向）
+	OutRow = FMath::FloorToInt(LocalPos.X / CellSize);
+	OutColumn = FMath::FloorToInt(LocalPos.Y / CellSize);
 
 	// 检查是否在 Grid 范围内
 	if (OutRow < 0 || OutRow >= TotalRows || OutColumn < 0 || OutColumn >= TotalColumns)
@@ -91,12 +91,12 @@ FVector ASHGridBase::GetCellCenterLocation(const int32 Row, const int32 Column) 
 	// 计算 Grid 左下角的世界坐标（使用实际尺寸）
 	const int32 TotalRows = GetTotalRows();
 	const int32 TotalColumns = GetTotalColumns();
-	const FVector CenterOffset(-TotalColumns * CellSize * 0.5f, -TotalRows * CellSize * 0.5f, 0.0f);
+	const FVector CenterOffset(-TotalRows * CellSize * 0.5f, -TotalColumns * CellSize * 0.5f, 0.0f);
 	const FVector GridBottomLeft = GetActorLocation() + GridOrigin + CenterOffset;
 
-	// 计算单元格中心位置
-	const float CellCenterX = (Column + 0.5f) * CellSize;
-	const float CellCenterY = (Row + 0.5f) * CellSize;
+	// Row → X 轴，Column → Y 轴
+	const float CellCenterX = (Row + 0.5f) * CellSize;
+	const float CellCenterY = (Column + 0.5f) * CellSize;
 
 	return GridBottomLeft + FVector(CellCenterX, CellCenterY, 0.0f);
 }
@@ -115,14 +115,14 @@ bool ASHGridBase::ContainsWorldLocation(const FVector& WorldLocation) const
 
 ASHPlayerBlock* ASHGridBase::GetShipBlockAt(int32 Row, int32 Column) const
 {
-	const FIntPoint Key(Column, Row);
+	const FIntPoint Key(Row, Column);
 	const ASHPlayerBlock* const* Found = CellData.Find(Key);
 	return Found ? const_cast<ASHPlayerBlock*>(*Found) : nullptr;
 }
 
 void ASHGridBase::SetShipBlockAt(const int32 Row, const int32 Column, ASHPlayerBlock* Block)
 {
-	const FIntPoint Key(Column, Row);
+	const FIntPoint Key(Row, Column);
 	if (Block)
 	{
 		CellData.Add(Key, Block);
@@ -143,7 +143,7 @@ void ASHGridBase::SetShipBlockAt(const int32 Row, const int32 Column, ASHPlayerB
 
 void ASHGridBase::ClearShipBlockAt(const int32 Row, const int32 Column)
 {
-	const FIntPoint Key(Column, Row);
+	const FIntPoint Key(Row, Column);
 
 	// 解除方块附加
 	ASHPlayerBlock* Block = GetShipBlockAt(Row, Column);
@@ -159,7 +159,7 @@ void ASHGridBase::ClearShipBlockAt(const int32 Row, const int32 Column)
 
 bool ASHGridBase::HasShipBlockAt(const int32 Row, const int32 Column) const
 {
-	const FIntPoint Key(Column, Row);
+	const FIntPoint Key(Row, Column);
 	return CellData.Contains(Key) && CellData[Key] != nullptr;
 }
 
@@ -251,17 +251,17 @@ ASHGridBase* ASHGridBase::GetPlayerFacingCellInfo(const UObject* WorldContextObj
 	// 获取玩家面朝方向
 	FVector ForwardDir = PlayerPawn->GetActorForwardVector();
 
-	// 将面朝方向转换为网格方向（4方向）
+	// 将面朝方向转换为网格方向（4方向）：Row → X，Column → Y
 	int32 DeltaRow = 0;
 	int32 DeltaColumn = 0;
 
 	if (FMath::Abs(ForwardDir.X) > FMath::Abs(ForwardDir.Y))
 	{
-		DeltaColumn = (ForwardDir.X > 0) ? 1 : -1;
+		DeltaRow = (ForwardDir.X > 0) ? 1 : -1;
 	}
 	else
 	{
-		DeltaRow = (ForwardDir.Y > 0) ? 1 : -1;
+		DeltaColumn = (ForwardDir.Y > 0) ? 1 : -1;
 	}
 
 	// 计算面朝方向的单元格（在当前Grid中）
@@ -280,8 +280,8 @@ ASHGridBase* ASHGridBase::GetPlayerFacingCellInfo(const UObject* WorldContextObj
 	// 如果不在当前Grid范围内，计算面朝单元格的世界坐标
 	// 使用当前Grid的单元格大小来估算位置
 	FVector FacingWorldLocation = PlayerGrid->GetCellCenterLocation(PlayerRow, PlayerColumn);
-	FacingWorldLocation.X += DeltaColumn * PlayerGrid->CellSize;
-	FacingWorldLocation.Y += DeltaRow * PlayerGrid->CellSize;
+	FacingWorldLocation.X += DeltaRow * PlayerGrid->CellSize;
+	FacingWorldLocation.Y += DeltaColumn * PlayerGrid->CellSize;
 
 	// 查找是否有其他Grid包含这个位置
 	TArray<AActor*> FoundGrids;
@@ -379,7 +379,7 @@ void ASHGridBase::Tick(float DeltaTime)
 		FVector ForwardDir = PlayerPawn->GetActorForwardVector();
 
 		// 将面朝方向转换为网格方向（4方向）
-		// X轴对应Column，Y轴对应Row
+		// X轴对应Row，Y轴对应Column
 		int32 DeltaRow = 0;
 		int32 DeltaColumn = 0;
 
@@ -387,12 +387,12 @@ void ASHGridBase::Tick(float DeltaTime)
 		if (FMath::Abs(ForwardDir.X) > FMath::Abs(ForwardDir.Y))
 		{
 			// X轴方向为主
-			DeltaColumn = (ForwardDir.X > 0) ? 1 : -1;
+			DeltaRow = (ForwardDir.X > 0) ? 1 : -1;
 		}
 		else
 		{
 			// Y轴方向为主
-			DeltaRow = (ForwardDir.Y > 0) ? 1 : -1;
+			DeltaColumn = (ForwardDir.Y > 0) ? 1 : -1;
 		}
 
 		// 计算面朝方向的单元格
@@ -424,23 +424,24 @@ void ASHGridBase::CreateGridLines()
 	const int32 TotalColumns = GetTotalColumns();
 
 	// 计算网格中心偏移，使GridOrigin位于所有格子的正中间
-	const FVector CenterOffset(-TotalColumns * CellSize * 0.5f, -TotalRows * CellSize * 0.5f, 0.0f);
+	// Row → X 轴，Column → Y 轴
+	const FVector CenterOffset(-TotalRows * CellSize * 0.5f, -TotalColumns * CellSize * 0.5f, GridMeshHeightOffset);
 
-	// 横向线条（行边框）- 从上到下
+	// 沿 Y 轴方向的线条（Column 方向边框）
 	for (int32 Row = 0; Row <= TotalRows; ++Row)
 	{
-		const float Y = Row * CellSize;
-		FVector Start = GridOrigin + CenterOffset + FVector(0.0f, Y, 0.0f);
-		FVector End = GridOrigin + CenterOffset + FVector(TotalColumns * CellSize, Y, 0.0f);
+		const float X = Row * CellSize;
+		FVector Start = GridOrigin + CenterOffset + FVector(X, 0.0f, 0.0f);
+		FVector End = GridOrigin + CenterOffset + FVector(X, TotalColumns * CellSize, 0.0f);
 		AddLine(Start, End, Vertices, Triangles, Normals);
 	}
 
-	// 纵向线条（列边框）- 从左到右
+	// 沿 X 轴方向的线条（Row 方向边框）
 	for (int32 Col = 0; Col <= TotalColumns; ++Col)
 	{
-		const float X = Col * CellSize;
-		FVector Start = GridOrigin + CenterOffset + FVector(X, 0.0f, 0.0f);
-		FVector End = GridOrigin + CenterOffset + FVector(X, TotalRows * CellSize, 0.0f);
+		const float Y = Col * CellSize;
+		FVector Start = GridOrigin + CenterOffset + FVector(0.0f, Y, 0.0f);
+		FVector End = GridOrigin + CenterOffset + FVector(TotalRows * CellSize, Y, 0.0f);
 		AddLine(Start, End, Vertices, Triangles, Normals);
 	}
 
@@ -546,13 +547,14 @@ void ASHGridBase::InitializeCellCollisions()
 	const int32 TotalColumns = GetTotalColumns();
 
 	// 计算 Grid 左下角的世界坐标
-	const FVector CenterOffset(-TotalColumns * CellSize * 0.5f, -TotalRows * CellSize * 0.5f, 0.0f);
+	// Row → X 轴，Column → Y 轴
+	const FVector CenterOffset(-TotalRows * CellSize * 0.5f, -TotalColumns * CellSize * 0.5f, 0.0f);
 
 	for (int32 Row = 0; Row < TotalRows; ++Row)
 	{
 		for (int32 Col = 0; Col < TotalColumns; ++Col)
 		{
-			FIntPoint Key(Col, Row);
+			FIntPoint Key(Row, Col);
 
 			// 创建碰撞盒组件
 			UBoxComponent* BoxComp = NewObject<UBoxComponent>(this);
@@ -565,9 +567,9 @@ void ASHGridBase::InitializeCellCollisions()
 			// 设置碰撞盒大小（半尺寸）
 			BoxComp->SetBoxExtent(FVector(CellSize * 0.5f, CellSize * 0.5f, CellSize * 0.5f));
 
-			// 计算碰撞盒位置（单元格中心，Z轴为高度的一半使底部与Grid平面对齐）
-			float CellCenterX = (Col + 0.5f) * CellSize;
-			float CellCenterY = (Row + 0.5f) * CellSize;
+			// 计算碰撞盒位置（Row → X，Col → Y）
+			float CellCenterX = (Row + 0.5f) * CellSize;
+			float CellCenterY = (Col + 0.5f) * CellSize;
 			FVector LocalPos = GridOrigin + CenterOffset + FVector(CellCenterX, CellCenterY, CellSize * 0.5f);
 			BoxComp->SetRelativeLocation(LocalPos);
 
@@ -613,7 +615,7 @@ void ASHGridBase::SyncAllCellCollisions()
 
 void ASHGridBase::EnableCellCollisionLocal(const int32 Row, const int32 Column, const bool bEnable)
 {
-	const FIntPoint Key(Column, Row);
+	const FIntPoint Key(Row, Column);
 	UBoxComponent** Found = CellCollisions.Find(Key);
 	if (Found && *Found)
 	{

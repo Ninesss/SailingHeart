@@ -32,9 +32,9 @@ ASHPlayerCharacterBase::ASHPlayerCharacterBase(const FObjectInitializer& ObjectI
 	// 相机臂设置
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 1500.f;
-	CameraBoom->SocketOffset = FVector(-300, 0, 1700);
-	CameraBoom->bDoCollisionTest = false;
+	CameraBoom->TargetArmLength = 1200.f;
+	CameraBoom->SocketOffset = FVector(-400, 0, 1500);
+	CameraBoom->bDoCollisionTest = true;
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->CameraLagSpeed = 10.f;
 	CameraBoom->bInheritPitch = false;
@@ -70,6 +70,42 @@ void ASHPlayerCharacterBase::BeginPlay()
 {
 	// 跳过基类的 ASC 初始化（我们从 PlayerState 获取）
 	ASHCharacterBase::BeginPlay();
+
+	// 只有本地控制的角色才初始化相机景深（避免多人冲突）
+	if (IsLocallyControlled() && FollowCamera)
+	{
+		FPostProcessSettings& PP = FollowCamera->PostProcessSettings;
+
+		PP.bOverride_DepthOfFieldFstop = true;
+		PP.DepthOfFieldFstop = DOF_Aperture;
+
+		PP.bOverride_DepthOfFieldSensorWidth = true;
+		PP.DepthOfFieldSensorWidth = DOF_SensorWidth;
+
+		PP.bOverride_DepthOfFieldFocalDistance = true;
+
+		FollowCamera->PostProcessBlendWeight = 1.0f;
+	}
+}
+
+void ASHPlayerCharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// 只在本地控制的客户端更新焦距（纯本地，不走网络）
+	if (!IsLocallyControlled() || !FollowCamera)
+	{
+		return;
+	}
+
+	const FVector CameraLocation = FollowCamera->GetComponentLocation();
+	const FBoxSphereBounds MeshBounds = GetMesh()->Bounds;
+	// 从包围盒底部按比例取焦点高度（0=脚底，1=头顶）
+	const float FocusZ = MeshBounds.Origin.Z - MeshBounds.BoxExtent.Z + MeshBounds.BoxExtent.Z * 2.f * DOF_FocusHeightRatio;
+	const FVector FocusPoint(MeshBounds.Origin.X, MeshBounds.Origin.Y, FocusZ);
+	const float FocalDistance = FVector::Dist(CameraLocation, FocusPoint);
+
+	FollowCamera->PostProcessSettings.DepthOfFieldFocalDistance = FocalDistance;
 }
 
 void ASHPlayerCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

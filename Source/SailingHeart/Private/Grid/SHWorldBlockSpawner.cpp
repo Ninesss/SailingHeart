@@ -47,7 +47,7 @@ void ASHWorldBlockSpawner::StartSpawning()
 	}
 
 	// 检查是否至少有一种方块可生成
-	if (EnemyBlockDataList.Num() == 0 && NeutralBlockDataList.Num() == 0)
+	if (EnemyBlockDataList.IsEmpty() && NeutralBlockDataList.IsEmpty())
 	{
 		return;
 	}
@@ -99,8 +99,8 @@ void ASHWorldBlockSpawner::SpawnWave()
 
 void ASHWorldBlockSpawner::SpawnSingleBlock(const FVector& Location)
 {
-	const bool bHasEnemy = EnemyBlockDataList.Num() > 0;
-	const bool bHasNeutral = NeutralBlockDataList.Num() > 0;
+	const bool bHasEnemy = !EnemyBlockDataList.IsEmpty();
+	const bool bHasNeutral = !NeutralBlockDataList.IsEmpty();
 
 	if (!bHasEnemy && !bHasNeutral)
 	{
@@ -192,40 +192,66 @@ ASHGridBase* ASHWorldBlockSpawner::GetTargetGrid()
 
 USHEnemyBlockData* ASHWorldBlockSpawner::GetRandomEnemyData()
 {
-	TArray<USHEnemyBlockData*> ValidData;
-	for (USHEnemyBlockData* Data : EnemyBlockDataList)
+	// 收集有效条目并累计总权重
+	float TotalWeight = 0.f;
+	TArray<const FSHEnemyBlockEntry*> ValidEntries;
+	for (const FSHEnemyBlockEntry& Entry : EnemyBlockDataList)
 	{
-		if (Data && Data->EnemyClass)
+		if (Entry.BlockData && Entry.BlockData->EnemyClass && Entry.Weight > 0.f)
 		{
-			ValidData.Add(Data);
+			ValidEntries.Add(&Entry);
+			TotalWeight += Entry.Weight;
 		}
 	}
 
-	if (ValidData.Num() == 0)
+	if (ValidEntries.IsEmpty() || TotalWeight <= 0.f)
 	{
 		return nullptr;
 	}
 
-	return ValidData[FMath::RandRange(0, ValidData.Num() - 1)];
+	float Roll = FMath::FRand() * TotalWeight;
+	for (const FSHEnemyBlockEntry* Entry : ValidEntries)
+	{
+		Roll -= Entry->Weight;
+		if (Roll <= 0.f)
+		{
+			return Entry->BlockData;
+		}
+	}
+
+	return ValidEntries.Last()->BlockData;
 }
 
 USHNeutralBlockData* ASHWorldBlockSpawner::GetRandomNeutralData()
 {
-	TArray<USHNeutralBlockData*> ValidData;
-	for (USHNeutralBlockData* Data : NeutralBlockDataList)
+	// 收集有效条目并累计总权重
+	float TotalWeight = 0.f;
+	TArray<const FSHNeutralBlockEntry*> ValidEntries;
+	for (const FSHNeutralBlockEntry& Entry : NeutralBlockDataList)
 	{
-		if (Data && Data->NeutralClass)
+		if (Entry.BlockData && Entry.BlockData->NeutralClass && Entry.Weight > 0.f)
 		{
-			ValidData.Add(Data);
+			ValidEntries.Add(&Entry);
+			TotalWeight += Entry.Weight;
 		}
 	}
 
-	if (ValidData.Num() == 0)
+	if (ValidEntries.IsEmpty() || TotalWeight <= 0.f)
 	{
 		return nullptr;
 	}
 
-	return ValidData[FMath::RandRange(0, ValidData.Num() - 1)];
+	float Roll = FMath::FRand() * TotalWeight;
+	for (const FSHNeutralBlockEntry* Entry : ValidEntries)
+	{
+		Roll -= Entry->Weight;
+		if (Roll <= 0.f)
+		{
+			return Entry->BlockData;
+		}
+	}
+
+	return ValidEntries.Last()->BlockData;
 }
 
 TArray<int32> ASHWorldBlockSpawner::SelectRandomLateralOffsets(int32 Count)
@@ -272,12 +298,13 @@ FVector ASHWorldBlockSpawner::CalculateSpawnLocation(int32 LateralOffset)
 	const int32 TotalRows = GridRows + 2;
 	const int32 TotalColumns = GridColumns + 2;
 
-	const FVector CenterOffset(-TotalColumns * CellSize * 0.5f, -TotalRows * CellSize * 0.5f, 0.0f);
+	// Row → X 轴，Column → Y 轴
+	const FVector CenterOffset(-TotalRows * CellSize * 0.5f, -TotalColumns * CellSize * 0.5f, 0.0f);
 	const FVector GridBottomLeft = GridLocation + GridOrigin + CenterOffset;
 
-	// Grid 中心格子索引
-	const float GridCenterX = TotalColumns * 0.5f;
-	const float GridCenterY = TotalRows * 0.5f;
+	// Grid 中心格子索引（X → Row，Y → Column）
+	const float GridCenterRow = TotalRows * 0.5f;
+	const float GridCenterCol = TotalColumns * 0.5f;
 
 	float SpawnX = 0.0f;
 	float SpawnY = 0.0f;
@@ -285,29 +312,30 @@ FVector ASHWorldBlockSpawner::CalculateSpawnLocation(int32 LateralOffset)
 	switch (SpawnDirection)
 	{
 	case EGridMovementDirection::PositiveX:
-		SpawnX = (TotalColumns + SpawnDistanceOffset + 0.5f) * CellSize;
-		SpawnY = (GridCenterY + LateralOffset + 0.5f) * CellSize;
+		// 前进方向 +X（Row 增大），横向偏移沿 Y（Column）
+		SpawnX = (TotalRows + SpawnDistanceOffset + 0.5f) * CellSize;
+		SpawnY = (GridCenterCol + LateralOffset + 0.5f) * CellSize;
 		break;
 
 	case EGridMovementDirection::NegativeX:
 		SpawnX = (-SpawnDistanceOffset - 0.5f) * CellSize;
-		SpawnY = (GridCenterY + LateralOffset + 0.5f) * CellSize;
+		SpawnY = (GridCenterCol + LateralOffset + 0.5f) * CellSize;
 		break;
 
 	case EGridMovementDirection::PositiveY:
-		SpawnX = (GridCenterX + LateralOffset + 0.5f) * CellSize;
-		SpawnY = (TotalRows + SpawnDistanceOffset + 0.5f) * CellSize;
+		SpawnX = (GridCenterRow + LateralOffset + 0.5f) * CellSize;
+		SpawnY = (TotalColumns + SpawnDistanceOffset + 0.5f) * CellSize;
 		break;
 
 	case EGridMovementDirection::NegativeY:
-		SpawnX = (GridCenterX + LateralOffset + 0.5f) * CellSize;
+		SpawnX = (GridCenterRow + LateralOffset + 0.5f) * CellSize;
 		SpawnY = (-SpawnDistanceOffset - 0.5f) * CellSize;
 		break;
 
 	case EGridMovementDirection::None:
 	default:
-		SpawnX = (TotalColumns + SpawnDistanceOffset + 0.5f) * CellSize;
-		SpawnY = (GridCenterY + LateralOffset + 0.5f) * CellSize;
+		SpawnX = (TotalRows + SpawnDistanceOffset + 0.5f) * CellSize;
+		SpawnY = (GridCenterCol + LateralOffset + 0.5f) * CellSize;
 		break;
 	}
 
