@@ -10,6 +10,7 @@
 #include "Data/Ability/SHAbilityDataBase.h"
 #include "DrawDebugHelpers.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
+#include "Field/FieldSystemObjects.h"
 #include "SHGameplayTags.h"
 
 ASHCombatBlockBase::ASHCombatBlockBase()
@@ -353,17 +354,45 @@ void ASHCombatBlockBase::Multicast_PlayDeathEffects_Implementation()
 				DeathGeometryCollection->GetComponentLocation(),
 				Radius,
 				DeathImpulseGC,
-				RIF_Constant,
+				RIF_Linear,
 				true
+			);
+		}
+
+		// 对每个碎片施加以中心为原点向外辐射的角速度
+		// 每个碎片的旋转轴 = 从 GC 中心指向碎片的方向，位置不同轴不同，视觉上更自然
+		if (DeathAngularImpulseGC > 0.f)
+		{
+			URadialVector* AngularField = NewObject<URadialVector>(this);
+			AngularField->Magnitude = DeathAngularImpulseGC;
+			DeathGeometryCollection->ApplyPhysicsField(
+				true,
+				EGeometryCollectionPhysicsTypeEnum::Chaos_AngularVelocity,
+				nullptr,
+				AngularField
 			);
 		}
 	}
 
-	// SKM 开启 Ragdoll
+	// SKM 开启 Ragdoll，并断开所有骨骼约束使碎片飞散
 	if (FunctionalSKM)
 	{
 		FunctionalSKM->SetCollisionProfileName(TEXT("Debris"));
 		FunctionalSKM->SetSimulatePhysics(true);
+
+		// 断开所有有 Physics Body 的骨骼约束，使各部件独立飞散，并施加随机角速度
+		for (FBodyInstance* Body : FunctionalSKM->Bodies)
+		{
+			if (!Body) continue;
+			FName BoneName = FunctionalSKM->GetBoneName(Body->InstanceBoneIndex);
+			FVector BoneLocation = FunctionalSKM->GetBoneLocation(BoneName);
+			FunctionalSKM->BreakConstraint(FVector::ZeroVector, BoneLocation, BoneName);
+
+			if (DeathAngularImpulseSKM > 0.f)
+			{
+				Body->AddAngularImpulseInRadians(FMath::VRand() * DeathAngularImpulseSKM, true);
+			}
+		}
 
 		if (DeathImpulseSKM > 0.f)
 		{

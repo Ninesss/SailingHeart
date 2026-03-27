@@ -23,7 +23,8 @@ public class SailingHeart : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"GeometryCollectionEngine",
-			"Chaos"
+			"Chaos",
+			"FieldSystemEngine"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

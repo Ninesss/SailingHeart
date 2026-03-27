@@ -13,14 +13,19 @@ ASHPostProcessVolumeBase::ASHPostProcessVolumeBase()
 	// Metering Mode: Auto Exposure Basic
 	PPSettings.bOverride_AutoExposureMethod = true;
 	PPSettings.AutoExposureMethod = AEM_Basic;
+	
 
 	// Min EV100 = 1
 	PPSettings.bOverride_AutoExposureMinBrightness = true;
-	PPSettings.AutoExposureMinBrightness = 1.0f;
+	PPSettings.AutoExposureMinBrightness = -1.0f;
 
 	// Max EV100 = 1
 	PPSettings.bOverride_AutoExposureMaxBrightness = true;
-	PPSettings.AutoExposureMaxBrightness = 1.0f;
+	PPSettings.AutoExposureMaxBrightness = -1.0f;
+
+	// Exposure Compensation = 0
+	PPSettings.bOverride_AutoExposureBias = true;
+	PPSettings.AutoExposureBias = 0.0f;
 
 	// 景深（DOF）由 PlayerCharacterBase 的 CameraComponent 动态管理，Volume 不覆盖
 

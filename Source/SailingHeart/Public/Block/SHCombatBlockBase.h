@@ -243,9 +243,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
 	float DeathImpulseGC = 300.f;
 
+	// 死亡时对 Chaos GC 碎片施加的旋转角速度大小（0 = 不施加，单位 rad/s）
+	// 每个碎片绕从中心向外的轴旋转，碎片位置不同旋转轴不同
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
+	float DeathAngularImpulseGC = 10.f;
+
 	// 死亡时对 SKM Ragdoll 施加的向上冲量大小（0 = 不施加，单位 cm/s）
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
 	float DeathImpulseSKM = 300.f;
+
+	// 死亡时对 SKM 每块骨骼施加的随机角速度大小（0 = 不施加，单位 rad/s）
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
+	float DeathAngularImpulseSKM = 15.f;
 
 	/**
 	 * 技能 TriggerTag → AnimMontage 映射表
