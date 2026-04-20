@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Behavior Rules
+
+- **Always reply in Chinese**, regardless of the language used in the question.
+- **Propose a plan before writing code**: when given a task, outline the approach first; ask questions if anything is unclear; **wait for user confirmation before writing any code**.
+
+## Memory Rules
+
+- **At the start of every conversation**, read `/docs/memory.md` to load project context.
+- **At the end of every conversation** where code was changed, decisions were made, or issues were discovered, remind the user to run `/update-memory` to keep `/docs/memory.md` up to date.
+
 ## Project Overview
 
 SailingHeart is a multiplayer-networked action game built on Unreal Engine 5 using C++ and GAS (Gameplay Ability System). It features a grid-based block combat system where players place and carry blocks that fight enemy blocks. The UI and comments are in Chinese.

@@ -327,8 +327,25 @@ void ASHCombatBlockBase::DestroyAfterDelay()
 	Destroy();
 }
 
-void ASHCombatBlockBase::Multicast_PlayDeathEffects_Implementation()
+void ASHCombatBlockBase::Multicast_PlayDeathEffects_Implementation(FVector HitLocation, FVector HitDirection, bool bHasHit)
 {
+	// ---- DEBUG ----
+	if (bHasHit)
+	{
+		const float Radius = DeathGeometryCollection ? DeathGeometryCollection->Bounds.SphereRadius : 100.f;
+		const FVector GCCenter = DeathGeometryCollection ? DeathGeometryCollection->GetComponentLocation() : GetActorLocation();
+		const FVector ImpulseOrigin = GCCenter - HitDirection * (Radius * 0.5f);
+		// 黄球 = 命中点，红箭头 = HitDirection（投射物飞行方向），蓝球 = 实际冲量原点（应在方块内部）
+		DrawDebugSphere(GetWorld(), HitLocation, 10.f, 8, FColor::Yellow, false, 5.f);
+		DrawDebugDirectionalArrow(GetWorld(), HitLocation, HitLocation + HitDirection * 80.f, 20.f, FColor::Red, false, 5.f, 0, 2.f);
+		DrawDebugSphere(GetWorld(), ImpulseOrigin, 10.f, 8, FColor::Blue, false, 5.f);
+	}
+	else
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), 10.f, 8, FColor::White, false, 5.f);
+	}
+	// ---- END DEBUG ----
+
 	// 隐藏 SM
 	if (MeshComponent)
 	{
@@ -347,30 +364,41 @@ void ASHCombatBlockBase::Multicast_PlayDeathEffects_Implementation()
 		// 强制立即碎裂所有 cluster，使碎片独立受力
 		DeathGeometryCollection->CrumbleActiveClusters();
 
-		if (DeathImpulseGC > 0.f)
+		if (DeathImpulse > 0.f)
 		{
-			const float Radius = DeathGeometryCollection->Bounds.SphereRadius;
-			DeathGeometryCollection->AddRadialImpulse(
-				DeathGeometryCollection->GetComponentLocation(),
-				Radius,
-				DeathImpulseGC,
-				RIF_Linear,
-				true
-			);
+			// 对所有碎片施加统一的线速度，方向为受击方向（有命中信息）或向上（fallback）
+			UUniformVector* LinearField = NewObject<UUniformVector>(this);
+			LinearField->Magnitude = DeathImpulse;
+			LinearField->Direction = bHasHit ? HitDirection.GetSafeNormal() : FVector::UpVector;
+			DeathGeometryCollection->ApplyPhysicsField(true, EGeometryCollectionPhysicsTypeEnum::Chaos_LinearVelocity, nullptr, LinearField);
+
+			// LinearVelocity 会持续每帧覆盖速度，下一帧立即关闭使其等效为一次性赋值
+			UGeometryCollectionComponent* GCComp = DeathGeometryCollection;
+			GetWorldTimerManager().SetTimerForNextTick([GCComp, LinearField]()
+			{
+				if (GCComp)
+				{
+					GCComp->ApplyPhysicsField(false, EGeometryCollectionPhysicsTypeEnum::Chaos_LinearVelocity, nullptr, LinearField);
+				}
+			});
 		}
 
-		// 对每个碎片施加以中心为原点向外辐射的角速度
-		// 每个碎片的旋转轴 = 从 GC 中心指向碎片的方向，位置不同轴不同，视觉上更自然
-		if (DeathAngularImpulseGC > 0.f)
+		if (DeathAngularImpulse > 0.f)
 		{
-			URadialVector* AngularField = NewObject<URadialVector>(this);
-			AngularField->Magnitude = DeathAngularImpulseGC;
-			DeathGeometryCollection->ApplyPhysicsField(
-				true,
-				EGeometryCollectionPhysicsTypeEnum::Chaos_AngularVelocity,
-				nullptr,
-				AngularField
-			);
+			// 随机旋转轴，每次死亡不同，所有碎片同轴旋转
+			UUniformVector* AngularField = NewObject<UUniformVector>(this);
+			AngularField->Magnitude = DeathAngularImpulse;
+			AngularField->Direction = FMath::VRand();
+			DeathGeometryCollection->ApplyPhysicsField(true, EGeometryCollectionPhysicsTypeEnum::Chaos_AngularVelocity, nullptr, AngularField);
+
+			UGeometryCollectionComponent* GCComp = DeathGeometryCollection;
+			GetWorldTimerManager().SetTimerForNextTick([GCComp, AngularField]()
+			{
+				if (GCComp)
+				{
+					GCComp->ApplyPhysicsField(false, EGeometryCollectionPhysicsTypeEnum::Chaos_AngularVelocity, nullptr, AngularField);
+				}
+			});
 		}
 	}
 
@@ -388,15 +416,16 @@ void ASHCombatBlockBase::Multicast_PlayDeathEffects_Implementation()
 			FVector BoneLocation = FunctionalSKM->GetBoneLocation(BoneName);
 			FunctionalSKM->BreakConstraint(FVector::ZeroVector, BoneLocation, BoneName);
 
-			if (DeathAngularImpulseSKM > 0.f)
+			if (DeathAngularImpulse > 0.f)
 			{
-				Body->AddAngularImpulseInRadians(FMath::VRand() * DeathAngularImpulseSKM, true);
+				Body->AddAngularImpulseInRadians(FMath::VRand() * DeathAngularImpulse, true);
 			}
 		}
 
-		if (DeathImpulseSKM > 0.f)
+		if (DeathImpulse > 0.f)
 		{
-			FunctionalSKM->AddImpulse(FVector(0.f, 0.f, DeathImpulseSKM), NAME_None, true);
+			const FVector LinearDir = bHasHit ? HitDirection.GetSafeNormal() : FVector::UpVector;
+			FunctionalSKM->AddImpulse(LinearDir * DeathImpulse, NAME_None, true);
 		}
 	}
 }
@@ -426,8 +455,8 @@ void ASHCombatBlockBase::HandleDeath_Implementation()
 		BlockCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	// 广播死亡特效到所有端
-	Multicast_PlayDeathEffects();
+	// 广播死亡特效到所有端（顺带把命中信息打包进 RPC，客户端不需要单独复制）
+	Multicast_PlayDeathEffects(LastHitLocation, LastHitDirection, bHasLastHitInfo);
 
 	// 延迟销毁，让特效有时间播放
 	FTimerHandle DestroyTimer;

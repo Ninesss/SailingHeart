@@ -37,6 +37,8 @@ void ASHEnemyCharacterBase::InitializeFromData(USHEnemyCharacterData* EnemyData)
 	Params.Defence = EnemyData->Defence;
 	Params.CriticalRate = EnemyData->CriticalRate;
 	Params.CriticalDamage = EnemyData->CriticalDamage;
+	Params.MaxEnergy = EnemyData->MaxEnergy;
+	Params.EnergyRegen = EnemyData->EnergyRegen;
 	InitializeCharacter(Params);
 }
 

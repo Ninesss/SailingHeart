@@ -153,8 +153,9 @@ public:
 	void Multicast_PlayMontage(UAnimMontage* Montage);
 
 	// 在所有客户端播放死亡特效（Chaos 碎裂 + SKM Ragdoll）
+	// HitLocation/HitDirection：最后一击的命中点和方向（用于破碎偏向），bHasHit=false 时退回中心径向
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayDeathEffects();
+	void Multicast_PlayDeathEffects(FVector HitLocation, FVector HitDirection, bool bHasHit);
 
 	// ========== 属性访问器 ==========
 
@@ -239,22 +240,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0.1"))
 	float DeathDestroyDelay = 3.f;
 
-	// 死亡时对 Chaos GC 碎片施加的径向冲量大小（0 = 不施加，单位 cm/s）
+	// 死亡时对碎片施加的飞散速度（GC 线速度 / SKM 冲量，单位 cm/s）
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
-	float DeathImpulseGC = 300.f;
+	float DeathImpulse = 100.f;
 
-	// 死亡时对 Chaos GC 碎片施加的旋转角速度大小（0 = 不施加，单位 rad/s）
-	// 每个碎片绕从中心向外的轴旋转，碎片位置不同旋转轴不同
+	// 死亡时对碎片施加的旋转速度（GC 角速度 / SKM 每骨随机角速度，单位 rad/s）
 	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
-	float DeathAngularImpulseGC = 10.f;
+	float DeathAngularImpulse = 5.f;
 
-	// 死亡时对 SKM Ragdoll 施加的向上冲量大小（0 = 不施加，单位 cm/s）
-	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
-	float DeathImpulseSKM = 300.f;
 
-	// 死亡时对 SKM 每块骨骼施加的随机角速度大小（0 = 不施加，单位 rad/s）
-	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0"))
-	float DeathAngularImpulseSKM = 15.f;
+public:
+	// 最后一次受击信息，由服务器在 PostGameplayEffectExecute 中写入，随 Multicast RPC 传到客户端
+	FVector LastHitLocation = FVector::ZeroVector;
+	FVector LastHitDirection = FVector::ZeroVector;
+	bool bHasLastHitInfo = false;
+
+protected:
 
 	/**
 	 * 技能 TriggerTag → AnimMontage 映射表

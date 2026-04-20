@@ -15,7 +15,6 @@ ASHPlayerCharacterBase::ASHPlayerCharacterBase(const FObjectInitializer& ObjectI
 {
 	// 缓存自定义移动组件引用
 	CustomMovementComponent = Cast<USHCharacterMovementComponent>(GetCharacterMovement());
-
 	// 玩家角色不自己拥有 ASC（从 PlayerState 获取）
 	// 销毁基类创建的 ASC
 	if (AbilitySystemComponent)

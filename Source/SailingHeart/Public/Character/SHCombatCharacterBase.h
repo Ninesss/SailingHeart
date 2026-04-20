@@ -40,6 +40,14 @@ struct FCharacterInitParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CriticalDamage = 200.f;
 
+	// 最大能量
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxEnergy = 100.f;
+
+	// 能量回复速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float EnergyRegen = 5.f;
+
 	// 当前血量（-1 表示满血）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentHealth = -1.f;

@@ -143,6 +143,8 @@ void ASHCombatCharacterBase::InitializeAttributes(const FCharacterInitParams& Pa
 	AttributeSet->SetDefence(Params.Defence);
 	AttributeSet->SetCriticalRate(Params.CriticalRate);
 	AttributeSet->SetCriticalDamage(Params.CriticalDamage);
+	AttributeSet->SetMaxEnergy(Params.MaxEnergy);
+	AttributeSet->SetEnergyRegen(Params.EnergyRegen);
 
 	// 设置当前血量
 	const float Health = (Params.CurrentHealth < 0.f) ? Params.MaxHealth : Params.CurrentHealth;

@@ -49,6 +49,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
 	float CriticalDamage = 200.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
+	float MaxEnergy = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes")
+	float EnergyRegen = 5.f;
+
 	// ========== 初始能力 ==========
 
 	// 敌人的初始能力

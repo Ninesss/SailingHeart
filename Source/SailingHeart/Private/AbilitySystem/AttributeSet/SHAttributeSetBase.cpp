@@ -2,6 +2,7 @@
 
 #include "AbilitySystem/AttributeSet/SHAttributeSetBase.h"
 #include "AbilitySystem/SHGameplayEffectContext.h"
+#include "Block/SHCombatBlockBase.h"
 #include "SHGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
@@ -126,6 +127,29 @@ void USHAttributeSetBase::PostGameplayEffectExecute(const FGameplayEffectModCall
 					{
 						DamageTypeName = DamageTypeName.RightChop(LastDotIndex + 1);
 					}
+				}
+			}
+
+			// 将命中信息存入方块，用于死亡破碎方向
+			if (ASHCombatBlockBase* CombatBlock = Cast<ASHCombatBlockBase>(TargetActor))
+			{
+				const FHitResult* Hit = ContextHandle.GetHitResult();
+				FVector HitDir = SHContext ? SHContext->GetHitDirection() : FVector::ZeroVector;
+
+				// Fallback：没有显式方向时（碰撞伤害等），用施害者与目标的位置差推算
+				if (HitDir.IsZero())
+				{
+					if (AActor* Causer = ContextHandle.GetEffectCauser())
+					{
+						HitDir = (TargetActor->GetActorLocation() - Causer->GetActorLocation()).GetSafeNormal();
+					}
+				}
+
+				if (!HitDir.IsZero())
+				{
+					CombatBlock->LastHitLocation = Hit ? FVector(Hit->ImpactPoint) : TargetActor->GetActorLocation();
+					CombatBlock->LastHitDirection = HitDir;
+					CombatBlock->bHasLastHitInfo = true;
 				}
 			}
 

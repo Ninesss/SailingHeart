@@ -35,6 +35,8 @@ bool FSHGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bool
 			RepBits |= 1 << 8;
 		if (CollisionDamageOverride > 0.f)
 			RepBits |= 1 << 9;
+		if (!HitDirection.IsZero())
+			RepBits |= 1 << 10;
 	}
 
 	// 使用 16 位来容纳所有标志
@@ -94,6 +96,10 @@ bool FSHGameplayEffectContext::NetSerialize(FArchive& Ar, UPackageMap* Map, bool
 	if (RepBits & (1 << 9))
 	{
 		Ar << CollisionDamageOverride;
+	}
+	if (RepBits & (1 << 10))
+	{
+		Ar << HitDirection;
 	}
 
 	if (Ar.IsLoading())

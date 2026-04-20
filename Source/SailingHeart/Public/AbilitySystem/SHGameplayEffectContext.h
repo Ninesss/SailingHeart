@@ -51,6 +51,11 @@ public:
 	float GetCollisionDamageOverride() const { return CollisionDamageOverride; }
 	void SetCollisionDamageOverride(float InDamage) { CollisionDamageOverride = InDamage; }
 
+	// ========== 命中方向 ==========
+
+	FVector GetHitDirection() const { return HitDirection; }
+	void SetHitDirection(const FVector& InDirection) { HitDirection = InDirection; }
+
 	// ========== 必须覆盖的方法 ==========
 
 	virtual UScriptStruct* GetScriptStruct() const override
@@ -83,6 +88,10 @@ protected:
 	// 碰撞伤害覆盖值（对方剩余血量）
 	UPROPERTY()
 	float CollisionDamageOverride;
+
+	// 投射物命中时的飞行方向（由投射物速度方向写入，比 ImpactNormal 更连续）
+	UPROPERTY()
+	FVector HitDirection = FVector::ZeroVector;
 };
 
 // 启用网络序列化和复制

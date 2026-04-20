@@ -8,6 +8,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/SHAbilitySystemLibrary.h"
+#include "AbilitySystem/SHGameplayEffectContext.h"
 #include "AbilitySystem/AttributeSet/SHAttributeSetBase.h"
 #include "Interface/SHCombatInterface.h"
 #include "NiagaraFunctionLibrary.h"
@@ -127,6 +128,20 @@ void ASHProjectileBase::OnProjectileOverlap(
 void ASHProjectileBase::HandleHitTarget(AActor* HitActor, const FHitResult& HitResult)
 {
 	HitActors.Add(HitActor);
+
+	// 将命中信息写入 EffectContext，供 AttributeSet 侧记录破碎方向
+	if (DamageEffectSpecHandle.IsValid())
+	{
+		DamageEffectSpecHandle.Data->GetContext().AddHitResult(HitResult, true);
+
+		// 用投射物实际速度方向（连续），而非 ImpactNormal（只有轴对齐的离散法线）
+		FGameplayEffectContextHandle ContextHandle = DamageEffectSpecHandle.Data->GetContext();
+		if (FSHGameplayEffectContext* SHContext = USHAbilitySystemLibrary::GetSHEffectContext(ContextHandle))
+		{
+			SHContext->SetHitDirection(GetVelocity().GetSafeNormal());
+		}
+	}
+
 	ApplyDamageToTarget(HitActor);
 	ApplyHitEffectsToTarget(HitActor);
 
